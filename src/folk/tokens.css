@@ -261,6 +261,6 @@ body {
 }
 
 @layer base {
-  * { @apply border-border outline-ring/50; }
-  body { @apply bg-background text-foreground; }
+  * { box-sizing: border-box; }
+  body { color: var(--folk-text-primary); background: var(--folk-surface-default); }
 }
