@@ -10,15 +10,15 @@
    Radii       → Tailwind utilities: rounded-sm (2px), rounded (4px), rounded-md (6px)…
    ───────────────────────────────────────────────────────────────────────────── */
 
+/* ── Google Fonts must come before all other imports ───────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp&display=block');
+
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
-
-/* ── Typography setup ──────────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp&display=block');
 
 body {
   margin: 0;
