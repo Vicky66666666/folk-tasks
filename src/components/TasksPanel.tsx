@@ -265,7 +265,7 @@ function CircleCheckbox({ done, onToggle }: { done: boolean; onToggle: () => voi
   if (done) {
     return (
       <button
-        onClick={onToggle}
+        onClick={e => { e.stopPropagation(); onToggle() }}
         className="flex items-center justify-center flex-shrink-0"
         style={{
           width: 16, height: 16, borderRadius: '50%',
@@ -280,7 +280,7 @@ function CircleCheckbox({ done, onToggle }: { done: boolean; onToggle: () => voi
   }
   return (
     <button
-      onClick={onToggle}
+      onClick={e => { e.stopPropagation(); onToggle() }}
       className="flex-shrink-0"
       style={{
         width: 16, height: 16, borderRadius: '50%',
@@ -299,10 +299,12 @@ function TaskRow({
   task,
   onToggle,
   onPriorityChange,
+  onOpen,
 }: {
   task: Task
   onToggle: (id: number) => void
   onPriorityChange: (id: number, priority: Priority) => void
+  onOpen: (task: Task) => void
 }) {
   const done = task.status === 'done'
   const [isHovered, setIsHovered] = useState(false)
@@ -324,9 +326,11 @@ function TaskRow({
         paddingTop: 12,
         paddingBottom: 12,
         background: isHovered ? '#f9f9f9' : 'white',
+        cursor: 'pointer',
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={() => onOpen(task)}
     >
       {/* Selection checkbox — hidden until hover */}
       <div
@@ -1095,6 +1099,228 @@ function NewTaskForm({
   )
 }
 
+// ─── Task detail modal ────────────────────────────────────────────────────────
+
+function TaskDetail({
+  task,
+  onClose,
+  onUpdate,
+}: {
+  task: Task
+  onClose: () => void
+  onUpdate: (updated: Task) => void
+}) {
+  const [title, setTitle]             = useState(task.title)
+  const [description, setDescription] = useState('')
+  const [priority, setPriority]       = useState<Priority>(task.priority)
+  const [done, setDone]               = useState(task.status === 'done')
+  const [dueDate, setDueDate]         = useState<Date | null>(null)
+
+  const [assignee, setAssignee] = useState<AssigneeOption>(
+    ASSIGNEES.find(a => a.avatar === task.assigneeAvatar) ?? ASSIGNEES[0]
+  )
+
+  const [time,     setTime]     = useState<string | null>(null)
+  const [repeat,   setRepeat]   = useState<string | null>(null)
+  const [reminder, setReminder] = useState<string | null>(null)
+
+  const [priorityAnchor, setPriorityAnchor] = useState<DOMRect | null>(null)
+  const [assigneeAnchor, setAssigneeAnchor] = useState<DOMRect | null>(null)
+  const [dateAnchor,     setDateAnchor]     = useState<DOMRect | null>(null)
+
+  const titleRef = useRef<HTMLInputElement>(null)
+  useEffect(() => { titleRef.current?.focus() }, [])
+
+  const priorityLabel = priority === 'none' ? 'No prio'
+    : priority.charAt(0).toUpperCase() + priority.slice(1)
+
+  const handleSave = () => {
+    if (!title.trim()) return
+    onUpdate({
+      ...task,
+      title: title.trim(),
+      priority,
+      status: done ? 'done' : 'todo',
+      group: done ? 'completed' : task.overdue ? 'overdue' : (task.group === 'completed' ? 'upcoming' : task.group),
+      assigneeAvatar: assignee.avatar ?? task.assigneeAvatar,
+      dueDate: dueDate ? formatTaskDate(dueDate) : task.dueDate,
+    })
+    onClose()
+  }
+
+  return createPortal(
+    <>
+      {/* Backdrop */}
+      <div
+        style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.32)' }}
+        onMouseDown={onClose}
+      />
+
+      {/* Modal card — centered, 576px wide */}
+      <div
+        style={{
+          position: 'fixed',
+          top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 1000, width: 576,
+          background: 'white',
+          border: '1px solid #e1e1e1',
+          overflow: 'hidden',
+          boxShadow: '0px 9px 24px 0px rgba(24,26,27,0.16), 0px 3px 6px 0px rgba(24,26,27,0.08), 0px 0px 1px 0px rgba(24,26,27,0.04)',
+        }}
+        onMouseDown={e => e.stopPropagation()}
+        onKeyDown={e => {
+          if (e.key === 'Escape') { e.stopPropagation(); onClose() }
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSave()
+        }}
+      >
+        {/* Top */}
+        <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 40 }}>
+
+          {/* Checkbox + Title + description + close */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <div style={{ paddingTop: 3, flexShrink: 0 }}>
+              <CircleCheckbox done={done} onToggle={() => setDone(v => !v)} />
+            </div>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <input
+                ref={titleRef}
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                placeholder="Task title"
+                style={{
+                  border: 'none', outline: 'none', padding: 0, width: '100%',
+                  fontFamily: '"Uxum Grotesque", sans-serif',
+                  fontSize: 20, fontWeight: 500, lineHeight: '24px',
+                  color: '#202020', background: 'transparent',
+                  textDecoration: done ? 'line-through' : 'none',
+                  opacity: done ? 0.5 : 1,
+                }}
+              />
+              <input
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                placeholder="Add description..."
+                style={{
+                  border: 'none', outline: 'none', padding: 0, width: '100%',
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: 13, fontWeight: 400, lineHeight: '18px',
+                  letterSpacing: '-0.04px', color: '#8c8c8c', background: 'transparent',
+                }}
+              />
+            </div>
+            <button
+              onClick={onClose}
+              style={{
+                width: 24, height: 24, border: 'none', background: 'transparent',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                borderRadius: 4, flexShrink: 0,
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.06)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <Icon name="close" size={16} style={{ color: 'rgba(0,0,0,0.4)' }} />
+            </button>
+          </div>
+
+          {/* Attribute pills */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+
+            {/* 1. Priority */}
+            <button
+              style={pillStyle}
+              onClick={e => setPriorityAnchor(e.currentTarget.getBoundingClientRect())}
+            >
+              <PriorityIcon priority={priority} />
+              <span>{priorityLabel}</span>
+            </button>
+
+            {/* 2. Assignee */}
+            <button
+              style={pillStyle}
+              onClick={e => setAssigneeAnchor(e.currentTarget.getBoundingClientRect())}
+            >
+              {assignee.id === 'none' ? (
+                <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon name="account_circle" size={12} style={{ color: 'rgba(0,0,0,0.4)' }} />
+                </div>
+              ) : assignee.avatar ? (
+                <img src={assignee.avatar} alt="" style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0 }} />
+              ) : (
+                <div style={{ width: 16, height: 16, borderRadius: '50%', background: assignee.color || '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 9, fontWeight: 700, color: 'white' }}>
+                  {assignee.initials}
+                </div>
+              )}
+              <span>{assignee.id === 'none' ? 'Assignee' : assignee.name}</span>
+            </button>
+
+            {/* 3. Date */}
+            <button
+              style={pillStyle}
+              onClick={e => setDateAnchor(e.currentTarget.getBoundingClientRect())}
+            >
+              <Icon name="calendar_today" size={14} style={{ color: 'rgba(0,0,0,0.61)', flexShrink: 0 }} />
+              <span>{dueDate ? formatDueDate(dueDate) : (task.dueDate || 'Date')}</span>
+            </button>
+
+            {/* 4. Record */}
+            <button style={pillStyle}>
+              <img src="https://i.pravatar.cc/150?img=12" alt="" style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0 }} />
+              <span>Jane Cooper</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ borderTop: '1px solid #e1e1e1', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '12px 16px', gap: 8 }}>
+          <button
+            onClick={onClose}
+            style={{ height: 28, paddingLeft: 12, paddingRight: 12, background: 'white', border: '1px solid rgba(0,0,0,0.12)', borderRadius: 100, fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, letterSpacing: '-0.04px', color: 'rgba(0,0,0,0.61)', cursor: 'pointer' }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            style={{ height: 28, paddingLeft: 12, paddingRight: 12, background: title.trim() ? '#202020' : 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 100, fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, letterSpacing: '-0.04px', color: title.trim() ? 'white' : 'rgba(0,0,0,0.3)', cursor: title.trim() ? 'pointer' : 'default', transition: 'background 0.15s, color 0.15s' }}
+          >
+            Save
+          </button>
+        </div>
+      </div>
+
+      {/* Sub-pickers */}
+      {priorityAnchor && (
+        <PriorityPicker
+          current={priority}
+          anchorRect={priorityAnchor}
+          onSelect={p => { setPriority(p); setPriorityAnchor(null) }}
+          onClose={() => setPriorityAnchor(null)}
+        />
+      )}
+      {assigneeAnchor && (
+        <AssigneePicker
+          current={assignee.id}
+          anchorRect={assigneeAnchor}
+          onSelect={a => setAssignee(a)}
+          onClose={() => setAssigneeAnchor(null)}
+        />
+      )}
+      {dateAnchor && (
+        <DatePicker
+          current={dueDate}
+          anchorRect={dateAnchor}
+          onSelect={d => setDueDate(d)}
+          onClose={() => setDateAnchor(null)}
+          time={time}       onTimeChange={setTime}
+          repeat={repeat}   onRepeatChange={setRepeat}
+          reminder={reminder} onReminderChange={setReminder}
+        />
+      )}
+    </>,
+    document.body
+  )
+}
+
 // ─── Section header ───────────────────────────────────────────────────────────
 
 function SectionHeader({
@@ -1171,19 +1397,22 @@ function TasksContent({
   onToggle,
   onPriorityChange,
   onCreate,
+  onUpdate,
 }: {
   tasks: Task[]
   onToggle: (id: number) => void
   onPriorityChange: (id: number, priority: Priority) => void
   onCreate: (task: Omit<Task, 'id'>) => void
+  onUpdate: (task: Task) => void
 }) {
   const overdue   = tasks.filter(t => t.group === 'overdue'   && t.status === 'todo')
   const today     = tasks.filter(t => t.group === 'today'     && t.status === 'todo')
   const upcoming  = tasks.filter(t => t.group === 'upcoming'  && t.status === 'todo')
   const completed = tasks.filter(t => t.status === 'done')
 
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
-  const [formState, setFormState] = useState<{ group: string; rect: DOMRect } | null>(null)
+  const [collapsed,    setCollapsed]    = useState<Record<string, boolean>>({})
+  const [formState,    setFormState]    = useState<{ group: string; rect: DOMRect } | null>(null)
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const toggle = (key: string) => setCollapsed(prev => ({ ...prev, [key]: !prev[key] }))
 
   const sections = [
@@ -1205,7 +1434,7 @@ function TasksContent({
               collapsed={collapsed['overdue']} onToggle={() => toggle('overdue')}
             />
             {!collapsed['overdue'] && overdue.map(t =>
-              <TaskRow key={t.id} task={t} onToggle={onToggle} onPriorityChange={onPriorityChange} />
+              <TaskRow key={t.id} task={t} onToggle={onToggle} onPriorityChange={onPriorityChange} onOpen={task => setSelectedTask(task)} />
             )}
           </>
         )}
@@ -1219,7 +1448,7 @@ function TasksContent({
               onOpenForm={rect => setFormState({ group: 'today', rect })}
             />
             {!collapsed['today'] && today.map(t =>
-              <TaskRow key={t.id} task={t} onToggle={onToggle} onPriorityChange={onPriorityChange} />
+              <TaskRow key={t.id} task={t} onToggle={onToggle} onPriorityChange={onPriorityChange} onOpen={task => setSelectedTask(task)} />
             )}
           </>
         )}
@@ -1233,7 +1462,7 @@ function TasksContent({
               onOpenForm={rect => setFormState({ group: 'upcoming', rect })}
             />
             {!collapsed['upcoming'] && upcoming.map(t =>
-              <TaskRow key={t.id} task={t} onToggle={onToggle} onPriorityChange={onPriorityChange} />
+              <TaskRow key={t.id} task={t} onToggle={onToggle} onPriorityChange={onPriorityChange} onOpen={task => setSelectedTask(task)} />
             )}
           </>
         )}
@@ -1247,19 +1476,28 @@ function TasksContent({
               onOpenForm={rect => setFormState({ group: 'completed', rect })}
             />
             {!collapsed['completed'] && completed.map(t =>
-              <TaskRow key={t.id} task={t} onToggle={onToggle} onPriorityChange={onPriorityChange} />
+              <TaskRow key={t.id} task={t} onToggle={onToggle} onPriorityChange={onPriorityChange} onOpen={task => setSelectedTask(task)} />
             )}
           </>
         )}
       </div>
 
-      {/* Modal form (portal) */}
+      {/* New task modal (portal) */}
       {formState && (
         <NewTaskForm
           group={formState.group}
           anchorRect={formState.rect}
           onClose={() => setFormState(null)}
           onCreate={task => { onCreate(task) }}
+        />
+      )}
+
+      {/* Task detail modal (portal) */}
+      {selectedTask && (
+        <TaskDetail
+          task={selectedTask}
+          onClose={() => setSelectedTask(null)}
+          onUpdate={task => { onUpdate(task); setSelectedTask(null) }}
         />
       )}
     </>
@@ -1354,6 +1592,10 @@ export function TasksPanel() {
     setTasks(prev => [...prev, { ...task, id: Date.now() }])
   }
 
+  const handleUpdate = (task: Task) => {
+    setTasks(prev => prev.map(t => t.id === task.id ? task : t))
+  }
+
   const todoCount = tasks.filter(t => t.status === 'todo').length
 
   return (
@@ -1403,7 +1645,7 @@ export function TasksPanel() {
 
       {/* Tab content */}
       {activeTab === 'tasks' && (
-        <TasksContent tasks={tasks} onToggle={handleToggle} onPriorityChange={handlePriorityChange} onCreate={handleCreate} />
+        <TasksContent tasks={tasks} onToggle={handleToggle} onPriorityChange={handlePriorityChange} onCreate={handleCreate} onUpdate={handleUpdate} />
       )}
       {activeTab === 'interactions' && <InteractionsContent />}
       {activeTab === 'notes' && (
