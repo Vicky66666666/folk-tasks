@@ -622,7 +622,7 @@ function DatePicker({
         onMouseDown={e => e.stopPropagation()}
       >
         {/* Quick-pick chips */}
-        <div style={{ display: 'flex', gap: 6, padding: '10px 12px', borderBottom: '1px solid rgba(0,0,0,0.08)', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.12)', flexWrap: 'wrap', background: '#f9f9f9' }}>
           {quickPicks.map(q => (
             <button
               key={q.label}
@@ -714,6 +714,26 @@ function DatePicker({
             <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.61)', letterSpacing: '-0.04px' }}>No date</span>
           </button>
         </div>
+
+        {/* Time / Remind me / Repeat footer */}
+        <div style={{ borderTop: '1px solid rgba(0,0,0,0.08)', padding: '4px 4px' }}>
+          {[
+            { icon: 'schedule',      label: '9 AM' },
+            { icon: 'notifications', label: 'Remind me' },
+            { icon: 'replay',        label: 'Repeat' },
+          ].map(row => (
+            <button
+              key={row.label}
+              className="flex items-center w-full"
+              style={{ gap: 8, height: 28, paddingLeft: 6, paddingRight: 8, border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.04px' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <Icon name={row.icon} size={16} style={{ color: 'rgba(0,0,0,0.61)', flexShrink: 0 }} />
+              <span>{row.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </>,
     document.body
@@ -766,11 +786,6 @@ function NewTaskForm({
     }
   }
 
-  // Position modal: right-align with tasks panel (anchorRect is the "+" button)
-  const modalW = 440
-  const left = Math.max(8, anchorRect.right - modalW)
-  const top  = anchorRect.bottom + 8
-
   return createPortal(
     <>
       {/* Backdrop */}
@@ -779,13 +794,16 @@ function NewTaskForm({
         onMouseDown={onClose}
       />
 
-      {/* Modal card */}
+      {/* Modal card — centered, 576px wide, no border-radius */}
       <div
         style={{
-          position: 'fixed', top, left, zIndex: 1000, width: modalW,
+          position: 'fixed',
+          top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 1000, width: 576,
           background: 'white',
           border: '1px solid #e1e1e1',
-          borderRadius: 8,
+          overflow: 'hidden',
           boxShadow: '0px 9px 24px 0px rgba(24,26,27,0.16), 0px 3px 6px 0px rgba(24,26,27,0.08), 0px 0px 1px 0px rgba(24,26,27,0.04)',
         }}
         onMouseDown={e => e.stopPropagation()}
@@ -873,13 +891,13 @@ function NewTaskForm({
         </div>
 
         {/* Footer */}
-        <div style={{ borderTop: '1px solid #e1e1e1', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px' }}>
+        <div style={{ borderTop: '1px solid #e1e1e1', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
           <button
             onClick={() => setCreateMore(v => !v)}
             style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             <ToggleSwitch on={createMore} />
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 500, color: 'rgba(0,0,0,0.61)' }}>
+            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 400, color: '#626262' }}>
               Create more
             </span>
           </button>
