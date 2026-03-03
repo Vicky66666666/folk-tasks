@@ -743,7 +743,7 @@ function DatePicker({
 // ─── New task form ────────────────────────────────────────────────────────────
 
 function NewTaskForm({
-  group, anchorRect, onClose, onCreate,
+  group, anchorRect: _anchorRect, onClose, onCreate,
 }: {
   group: string
   anchorRect: DOMRect
