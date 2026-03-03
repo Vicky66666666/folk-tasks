@@ -4,29 +4,90 @@ import { Icon } from '../folk'
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type TaskStatus = 'todo' | 'done'
+type Priority = 'urgent' | 'medium' | 'none'
 
 interface Task {
   id: number
   title: string
   dueDate: string
-  dueLabel: string
-  assignee: string
   assigneeInitials: string
+  assigneeAvatar: string
   status: TaskStatus
+  priority: Priority
   overdue?: boolean
+  group: 'overdue' | 'today' | 'upcoming' | 'completed'
 }
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
 const TASKS: Task[] = [
-  { id: 1, title: 'Send partnership proposal deck', dueLabel: 'Yesterday', dueDate: 'Mar 1', assignee: 'Julien', assigneeInitials: 'JL', status: 'todo', overdue: true },
-  { id: 2, title: 'Follow up on intro email to Steve', dueLabel: 'Yesterday', dueDate: 'Mar 1', assignee: 'Vicky', assigneeInitials: 'VM', status: 'todo', overdue: true },
-  { id: 3, title: 'Prepare Q2 review call', dueLabel: 'Today', dueDate: 'Mar 2', assignee: 'Vicky', assigneeInitials: 'VM', status: 'todo' },
-  { id: 4, title: 'Share product roadmap PDF', dueLabel: 'Today', dueDate: 'Mar 2', assignee: 'Julien', assigneeInitials: 'JL', status: 'todo' },
-  { id: 5, title: 'Book dinner at Nobu for next week', dueLabel: 'Mar 7', dueDate: 'Mar 7', assignee: 'Vicky', assigneeInitials: 'VM', status: 'todo' },
-  { id: 6, title: 'Confirm attendance for Fundraising event', dueLabel: 'Mar 12', dueDate: 'Mar 12', assignee: 'Julien', assigneeInitials: 'JL', status: 'todo' },
-  { id: 7, title: 'Intro call done — send recap', dueLabel: 'Feb 28', dueDate: 'Feb 28', assignee: 'Vicky', assigneeInitials: 'VM', status: 'done' },
+  { id: 1, title: 'Call back for Y project', dueDate: 'Apr 2', assigneeInitials: 'JL', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', priority: 'urgent', overdue: true, group: 'overdue' },
+  { id: 2, title: 'Call back for Y project', dueDate: 'Apr 2', assigneeInitials: 'VM', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', priority: 'medium', group: 'today' },
+  { id: 3, title: 'Call back for Y project', dueDate: 'Apr 2', assigneeInitials: 'JL', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', priority: 'medium', group: 'today' },
+  { id: 4, title: 'Call back for Y project', dueDate: 'Apr 2', assigneeInitials: 'VM', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', priority: 'urgent', group: 'upcoming' },
+  { id: 5, title: 'Call back for Y project', dueDate: 'Apr 2', assigneeInitials: 'JL', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', priority: 'none', group: 'upcoming' },
+  { id: 6, title: 'Call back for Y project', dueDate: 'Apr 2', assigneeInitials: 'VM', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', priority: 'none', group: 'upcoming' },
+  { id: 7, title: 'Call back for Y project', dueDate: 'Apr 2', assigneeInitials: 'JL', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'done', priority: 'none', group: 'completed' },
+  { id: 8, title: 'Call back for Y project', dueDate: 'Apr 2', assigneeInitials: 'VM', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'done', priority: 'none', group: 'completed' },
+  { id: 9, title: 'Call back for Y project', dueDate: 'Apr 2', assigneeInitials: 'JL', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'done', priority: 'none', group: 'completed' },
+  { id: 10, title: 'Call back for Y project', dueDate: 'Apr 2', assigneeInitials: 'VM', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'done', priority: 'none', group: 'completed' },
 ]
+
+// ─── Priority icon ─────────────────────────────────────────────────────────────
+
+function PriorityIcon({ priority }: { priority: Priority }) {
+  if (priority === 'urgent') {
+    return (
+      <span
+        className="flex items-center justify-center flex-shrink-0"
+        style={{
+          width: 14,
+          height: 14,
+          borderRadius: 3,
+          background: '#ff6900',
+          color: 'white',
+          fontSize: 10,
+          fontWeight: 700,
+          lineHeight: 1,
+        }}
+      >
+        !
+      </span>
+    )
+  }
+  if (priority === 'medium') {
+    return (
+      <span
+        className="flex items-center gap-px flex-shrink-0"
+        style={{ width: 14, height: 14 }}
+        aria-label="medium priority"
+      >
+        {[4, 7, 10].map((h, i) => (
+          <span
+            key={i}
+            style={{
+              display: 'block',
+              width: 3,
+              height: h,
+              background: 'var(--color-gray-9)',
+              borderRadius: 1,
+              alignSelf: 'flex-end',
+            }}
+          />
+        ))}
+      </span>
+    )
+  }
+  // none
+  return (
+    <span
+      className="flex-shrink-0"
+      style={{ color: 'var(--color-gray-7)', fontSize: 11, lineHeight: '14px', width: 14, textAlign: 'center' }}
+    >
+      ···
+    </span>
+  )
+}
 
 // ─── Task row ─────────────────────────────────────────────────────────────────
 
@@ -35,38 +96,42 @@ function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: number) => voi
 
   return (
     <div
-      className="flex items-center gap-3 px-4 py-2.5 group cursor-default"
-      style={{
-        borderBottom: '1px solid var(--folk-separator)',
-        opacity: done ? 0.5 : 1,
-        background: 'var(--folk-surface-default)',
-      }}
+      className="flex items-center gap-2 px-4 py-2 group cursor-default"
+      style={{ background: 'var(--folk-surface-default)' }}
       onMouseEnter={e => (e.currentTarget.style.background = 'var(--folk-bg-hover)')}
       onMouseLeave={e => (e.currentTarget.style.background = 'var(--folk-surface-default)')}
     >
-      {/* Checkbox */}
+      {/* Circular checkbox */}
       <button
         onClick={() => onToggle(task.id)}
-        className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
+        className="flex items-center justify-center flex-shrink-0"
         style={{
-          border: done ? 'none' : `1px solid var(--folk-checkbox-border)`,
-          background: done ? 'var(--folk-text-primary)' : 'var(--folk-surface-default)',
+          width: 16,
+          height: 16,
+          borderRadius: '50%',
+          border: done ? 'none' : '1.5px solid var(--color-gray-7)',
+          background: done ? '#22c55e' : 'transparent',
+          cursor: 'pointer',
+          padding: 0,
         }}
         onMouseEnter={e => {
-          if (!done) (e.currentTarget as HTMLElement).style.borderColor = 'var(--folk-checkbox-border-hover)'
+          if (!done) (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-gray-10)'
         }}
         onMouseLeave={e => {
-          if (!done) (e.currentTarget as HTMLElement).style.borderColor = 'var(--folk-checkbox-border)'
+          if (!done) (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-gray-7)'
         }}
       >
-        {done && <Icon name="check" size={11} className="text-white" />}
+        {done && <Icon name="check" size={10} className="text-white" />}
       </button>
+
+      {/* Priority icon */}
+      <PriorityIcon priority={task.priority} />
 
       {/* Title */}
       <span
-        className="flex-1 text-sm"
+        className="flex-1 truncate"
         style={{
-          color: 'var(--folk-text-primary)',
+          color: done ? 'var(--folk-text-muted)' : 'var(--folk-text-primary)',
           textDecoration: done ? 'line-through' : 'none',
           fontSize: 13,
         }}
@@ -76,54 +141,84 @@ function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: number) => voi
 
       {/* Due date */}
       <span
-        className="text-xs flex-shrink-0"
+        className="flex-shrink-0"
         style={{
-          color: task.overdue && !done ? 'var(--folk-text-error)' : 'var(--folk-text-muted)',
-          fontSize: 11,
-          minWidth: 52,
-          textAlign: 'right',
+          color: task.overdue && !done ? '#e5484d' : 'var(--folk-text-muted)',
+          fontSize: 12,
         }}
       >
-        {task.dueLabel}
+        {task.dueDate}
       </span>
 
       {/* Assignee avatar */}
-      <div
-        className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0"
-        style={{
-          background: 'var(--folk-bg-selected)',
-          color: 'var(--folk-text-primary)',
-          fontSize: 9,
-          border: '1px solid var(--folk-separator)',
-        }}
-        title={task.assignee}
-      >
-        {task.assigneeInitials}
-      </div>
+      <img
+        src={task.assigneeAvatar}
+        alt={task.assigneeInitials}
+        className="rounded-full object-cover flex-shrink-0"
+        style={{ width: 16, height: 16 }}
+      />
     </div>
   )
 }
 
 // ─── Section header ───────────────────────────────────────────────────────────
 
-function SectionHeader({ label, count, overdue }: { label: string; count: number; overdue?: boolean }) {
+function SectionHeader({
+  label,
+  count,
+  overdue,
+  showPlus,
+  collapsed,
+  onToggle,
+}: {
+  label: string
+  count: number
+  overdue?: boolean
+  showPlus?: boolean
+  collapsed?: boolean
+  onToggle: () => void
+}) {
   return (
     <div
-      className="flex items-center gap-2 px-4 py-2"
-      style={{ background: 'var(--folk-surface-muted)' }}
+      className="flex items-center px-4 cursor-pointer"
+      style={{ height: 28, background: 'var(--folk-surface-muted)' }}
+      onClick={onToggle}
     >
+      <Icon
+        name={collapsed ? 'chevron_right' : 'expand_more'}
+        size={14}
+        className={overdue ? 'text-red-9' : 'text-gray-9'}
+      />
       <span
-        className="text-xs font-medium"
-        style={{ color: overdue ? 'var(--folk-text-error)' : 'var(--folk-text-muted)', fontSize: 11 }}
+        className="ml-1"
+        style={{
+          color: overdue ? '#e5484d' : 'var(--folk-text-muted)',
+          fontSize: 12,
+          fontWeight: 500,
+        }}
       >
         {label}
       </span>
       <span
-        className="text-xs"
-        style={{ color: overdue ? 'var(--folk-text-error)' : 'var(--folk-text-muted)', fontSize: 11 }}
+        className="ml-1"
+        style={{
+          color: overdue ? '#e5484d' : 'var(--folk-text-muted)',
+          fontSize: 12,
+        }}
       >
         {count}
       </span>
+      {showPlus && (
+        <button
+          className="ml-auto flex items-center justify-center"
+          style={{ width: 20, height: 20, color: 'var(--folk-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', borderRadius: 4 }}
+          onClick={e => { e.stopPropagation() }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--folk-bg-hover)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        >
+          <Icon name="add" size={14} className="text-gray-9" />
+        </button>
+      )}
     </div>
   )
 }
@@ -133,114 +228,101 @@ function SectionHeader({ label, count, overdue }: { label: string; count: number
 const TABS = [
   { key: 'interactions', label: 'Interactions', count: 8 },
   { key: 'notes', label: 'Notes', count: 1 },
-  { key: 'tasks', label: 'Tasks', count: 6 },
+  { key: 'tasks', label: 'Tasks', count: 0 },
 ]
 
 // ─── Tasks tab content ────────────────────────────────────────────────────────
 
 function TasksContent({ tasks, onToggle }: { tasks: Task[]; onToggle: (id: number) => void }) {
-  const overdue = tasks.filter(t => t.overdue && t.status === 'todo')
-  const today = tasks.filter(t => t.dueLabel === 'Today' && t.status === 'todo')
-  const upcoming = tasks.filter(t => !t.overdue && t.dueLabel !== 'Today' && t.status === 'todo')
-  const done = tasks.filter(t => t.status === 'done')
+  const overdue = tasks.filter(t => t.group === 'overdue' && t.status === 'todo')
+  const today = tasks.filter(t => t.group === 'today' && t.status === 'todo')
+  const upcoming = tasks.filter(t => t.group === 'upcoming' && t.status === 'todo')
+  const completed = tasks.filter(t => t.status === 'done')
 
-  const [showDone, setShowDone] = useState(false)
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+  const toggle = (key: string) => setCollapsed(prev => ({ ...prev, [key]: !prev[key] }))
 
   return (
     <div className="flex flex-col flex-1 overflow-y-auto">
-      {/* Toolbar */}
-      <div
-        className="flex items-center justify-between px-4 py-2.5"
-        style={{ borderBottom: '1px solid var(--folk-separator)' }}
-      >
-        <span className="text-sm font-medium" style={{ color: 'var(--folk-text-primary)', fontSize: 13 }}>
-          Tasks
-        </span>
-        <button
-          className="flex items-center gap-1 px-2.5 h-7 rounded text-xs font-medium cursor-pointer"
-          style={{
-            background: 'var(--folk-btn-primary-bg)',
-            color: 'var(--folk-btn-primary-text)',
-            border: 'none',
-            fontSize: 12,
-          }}
-          onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
-          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-        >
-          <Icon name="add" size={13} className="text-white" />
-          New task
-        </button>
-      </div>
-
       {/* Overdue */}
       {overdue.length > 0 && (
         <>
-          <SectionHeader label="Overdue" count={overdue.length} overdue />
-          {overdue.map(t => <TaskRow key={t.id} task={t} onToggle={onToggle} />)}
+          <SectionHeader
+            label="Overdue"
+            count={overdue.length}
+            overdue
+            collapsed={collapsed['overdue']}
+            onToggle={() => toggle('overdue')}
+          />
+          {!collapsed['overdue'] && overdue.map(t => <TaskRow key={t.id} task={t} onToggle={onToggle} />)}
         </>
       )}
 
       {/* Today */}
       {today.length > 0 && (
         <>
-          <SectionHeader label="Today" count={today.length} />
-          {today.map(t => <TaskRow key={t.id} task={t} onToggle={onToggle} />)}
+          <SectionHeader
+            label="Today"
+            count={today.length}
+            showPlus
+            collapsed={collapsed['today']}
+            onToggle={() => toggle('today')}
+          />
+          {!collapsed['today'] && today.map(t => <TaskRow key={t.id} task={t} onToggle={onToggle} />)}
         </>
       )}
 
       {/* Upcoming */}
       {upcoming.length > 0 && (
         <>
-          <SectionHeader label="Upcoming" count={upcoming.length} />
-          {upcoming.map(t => <TaskRow key={t.id} task={t} onToggle={onToggle} />)}
+          <SectionHeader
+            label="Upcoming"
+            count={upcoming.length}
+            showPlus
+            collapsed={collapsed['upcoming']}
+            onToggle={() => toggle('upcoming')}
+          />
+          {!collapsed['upcoming'] && upcoming.map(t => <TaskRow key={t.id} task={t} onToggle={onToggle} />)}
         </>
       )}
 
-      {/* Done */}
-      {done.length > 0 && (
+      {/* Completed */}
+      {completed.length > 0 && (
         <>
-          <button
-            className="flex items-center gap-2 px-4 py-2 w-full text-left"
-            style={{ background: 'var(--folk-surface-muted)' }}
-            onClick={() => setShowDone(v => !v)}
-          >
-            <Icon
-              name={showDone ? 'expand_more' : 'chevron_right'}
-              size={13}
-              className="text-gray-9"
-            />
-            <span className="text-xs font-medium" style={{ color: 'var(--folk-text-muted)', fontSize: 11 }}>
-              Done
-            </span>
-            <span className="text-xs" style={{ color: 'var(--folk-text-muted)', fontSize: 11 }}>{done.length}</span>
-          </button>
-          {showDone && done.map(t => <TaskRow key={t.id} task={t} onToggle={onToggle} />)}
+          <SectionHeader
+            label="Completed"
+            count={completed.length}
+            showPlus
+            collapsed={collapsed['completed']}
+            onToggle={() => toggle('completed')}
+          />
+          {!collapsed['completed'] && completed.map(t => <TaskRow key={t.id} task={t} onToggle={onToggle} />)}
         </>
       )}
     </div>
   )
 }
 
-// ─── Interactions tab placeholder ─────────────────────────────────────────────
+// ─── Interactions tab ─────────────────────────────────────────────────────────
 
 function InteractionsContent() {
   const items = [
-    { icon: 'mail', title: 'Intro: Jane Cooper & Steve', date: 'Today', people: 'John Wick, John Lenon +3', preview: 'Amet minim mollit. Amet minim mollit non deserunt ullamco est sit aliqua dolor do amet sint. Velit offi…' },
-    { icon: 'mail', title: 'Intro: Jane Cooper & JSteve', date: 'Today', people: 'John Wick, John Lenon +3', preview: 'Amet minim mollit. Amet minim mollit non deserunt ullamco est sit aliqua dolor do amet sint. Velit offi…' },
-    { icon: 'event', title: 'Fundraising event', date: 'in 5 min', people: 'John Wick, John Lenon +3', preview: '', chip: 'APR 12', chipColor: '#e5484d' },
-    { icon: 'mail', title: 'Intro: Jane Cooper & JSteve', date: 'Today', people: 'John Wick, John Lenon +3', preview: 'Amet minim mollit. Amet minim mollit non deserunt ullamco est sit aliqua dolor do amet sint. Velit offi…' },
-    { icon: 'event', title: 'Fundraising event', date: 'in 5 min', people: 'John Wick, John Lenon +3', preview: '', chip: 'APR 12', chipColor: '#e5484d' },
-    { icon: 'mail', title: 'Intro: Jane Cooper & Steve', date: 'Today', people: 'John Wick, John Lenon +3', preview: 'Amet minim mollit. Amet minim mollit non deserunt ullamco est sit aliqua dolor do amet sint. Velit offi…' },
+    { icon: 'mail', title: 'Intro: Jane Cooper & Steve', date: 'Today', people: 'John Wick, John Lenon +3', preview: 'Amet minim mollit non deserunt ullamco est sit aliqua dolor do amet sint. Velit offi…' },
+    { icon: 'mail', title: 'Intro: Jane Cooper & JSteve', date: 'Today', people: 'John Wick, John Lenon +3', preview: 'Amet minim mollit non deserunt ullamco est sit aliqua dolor do amet sint. Velit offi…' },
+    { icon: 'event', title: 'Fundraising event', date: 'in 5 min', people: 'John Wick, John Lenon +3', preview: '', chip: true },
+    { icon: 'mail', title: 'Intro: Jane Cooper & JSteve', date: 'Today', people: 'John Wick, John Lenon +3', preview: 'Amet minim mollit non deserunt ullamco est sit aliqua dolor do amet sint. Velit offi…' },
+    { icon: 'event', title: 'Fundraising event', date: 'in 5 min', people: 'John Wick, John Lenon +3', preview: '', chip: true },
+    { icon: 'mail', title: 'Intro: Jane Cooper & Steve', date: 'Today', people: 'John Wick, John Lenon +3', preview: 'Amet minim mollit non deserunt ullamco est sit aliqua dolor do amet sint. Velit offi…' },
   ]
   return (
     <div className="flex flex-col flex-1 overflow-y-auto">
       <div className="flex items-center justify-between px-4 py-2.5" style={{ borderBottom: '1px solid var(--folk-separator)' }}>
-        <span className="text-sm font-medium" style={{ color: 'var(--folk-text-primary)', fontSize: 13 }}>Past interactions</span>
+        <span style={{ color: 'var(--folk-text-primary)', fontSize: 13, fontWeight: 500 }}>Past interactions</span>
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1 px-2 h-7 rounded text-xs" style={{ border: '1px solid var(--folk-separator)', color: 'var(--folk-text-muted)', background: 'transparent', fontSize: 12 }}>
+          <button className="flex items-center gap-1 px-2 h-7 rounded" style={{ border: '1px solid var(--folk-separator)', color: 'var(--folk-text-muted)', background: 'transparent', fontSize: 12, cursor: 'pointer' }}>
             <Icon name="filter_list" size={12} className="text-gray-9" /> Filter
           </button>
-          <button className="flex items-center gap-1 px-2.5 h-7 rounded text-xs font-medium" style={{ border: '1px solid var(--folk-separator)', background: 'var(--folk-surface-default)', color: 'var(--folk-text-primary)', fontSize: 12 }}>
+          <button className="flex items-center gap-1 px-2.5 h-7 rounded" style={{ border: '1px solid var(--folk-separator)', background: 'var(--folk-surface-default)', color: 'var(--folk-text-primary)', fontSize: 12, cursor: 'pointer' }}>
             New interaction
           </button>
         </div>
@@ -251,22 +333,22 @@ function InteractionsContent() {
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
         >
           {item.chip ? (
-            <div className="w-8 h-8 rounded flex flex-col items-center justify-center flex-shrink-0 text-white text-xs font-bold" style={{ background: item.chipColor, fontSize: 9, lineHeight: 1.2 }}>
-              <span style={{ fontSize: 8, textTransform: 'uppercase' }}>APR</span>
+            <div className="flex flex-col items-center justify-center flex-shrink-0 text-white font-bold" style={{ width: 32, height: 32, borderRadius: 6, background: '#e5484d', fontSize: 9 }}>
+              <span style={{ textTransform: 'uppercase', fontSize: 8 }}>APR</span>
               <span style={{ fontSize: 14, lineHeight: 1 }}>12</span>
             </div>
           ) : (
-            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'var(--folk-bg-selected)' }}>
+            <div className="flex items-center justify-center flex-shrink-0" style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--folk-bg-selected)' }}>
               <Icon name={item.icon} size={14} className="text-gray-11" />
             </div>
           )}
           <div className="flex flex-col gap-0.5 flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-medium truncate" style={{ color: 'var(--folk-text-primary)', fontSize: 12 }}>{item.title}</span>
-              <span className="text-xs flex-shrink-0" style={{ color: 'var(--folk-text-muted)', fontSize: 11 }}>{item.date}</span>
+              <span className="truncate" style={{ color: 'var(--folk-text-primary)', fontSize: 12, fontWeight: 500 }}>{item.title}</span>
+              <span className="flex-shrink-0" style={{ color: 'var(--folk-text-muted)', fontSize: 11 }}>{item.date}</span>
             </div>
-            <span className="text-xs" style={{ color: 'var(--folk-text-muted)', fontSize: 11 }}>{item.people}</span>
-            {item.preview && <span className="text-xs truncate" style={{ color: 'var(--folk-text-muted)', fontSize: 11 }}>{item.preview}</span>}
+            <span style={{ color: 'var(--folk-text-muted)', fontSize: 11 }}>{item.people}</span>
+            {item.preview && <span className="truncate" style={{ color: 'var(--folk-text-muted)', fontSize: 11 }}>{item.preview}</span>}
           </div>
         </div>
       ))}
@@ -281,18 +363,18 @@ export function TasksPanel() {
   const [tasks, setTasks] = useState<Task[]>(TASKS)
 
   const handleToggle = (id: number) => {
-    setTasks(prev => prev.map(t =>
-      t.id === id ? { ...t, status: t.status === 'done' ? 'todo' : 'done' } : t
-    ))
+    setTasks(prev => prev.map(t => {
+      if (t.id !== id) return t
+      const newStatus: TaskStatus = t.status === 'done' ? 'todo' : 'done'
+      return {
+        ...t,
+        status: newStatus,
+        group: newStatus === 'done' ? 'completed' : t.overdue ? 'overdue' : t.group,
+      }
+    }))
   }
 
-  const taskCount = tasks.filter(t => t.status === 'todo').length
-
-  const tabCounts = {
-    interactions: 8,
-    notes: 1,
-    tasks: taskCount,
-  }
+  const todoCount = tasks.filter(t => t.status === 'todo').length
 
   return (
     <div
@@ -301,20 +383,17 @@ export function TasksPanel() {
     >
       {/* Activity banner */}
       <div
-        className="flex items-center gap-3 px-4 py-2.5"
+        className="flex items-center gap-2 px-4 py-2.5 cursor-pointer"
         style={{
           background: 'var(--folk-surface-muted)',
           borderBottom: '1px solid var(--folk-separator)',
           flexShrink: 0,
         }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--folk-bg-hover)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'var(--folk-surface-muted)')}
       >
-        <div
-          className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0"
-          style={{ background: 'var(--folk-bg-selected)', color: 'var(--folk-text-primary)', fontSize: 9 }}
-        >
-          JL
-        </div>
-        <p className="text-xs flex-1 truncate" style={{ color: 'var(--folk-text-muted)', fontSize: 12 }}>
+        <span style={{ fontSize: 16 }}>🧀</span>
+        <p className="flex-1 truncate" style={{ color: 'var(--folk-text-muted)', fontSize: 12, margin: 0 }}>
           Julien requested Make or Zapier credentials to build automation templates and discussed platform choice…
         </p>
         <Icon name="expand_more" size={14} className="text-gray-9" />
@@ -326,13 +405,13 @@ export function TasksPanel() {
         style={{ borderBottom: '1px solid var(--folk-separator)', flexShrink: 0, height: 40 }}
       >
         {TABS.map(tab => {
-          const count = tab.key === 'tasks' ? tabCounts.tasks : tabCounts[tab.key as keyof typeof tabCounts]
+          const count = tab.key === 'tasks' ? todoCount : tab.count
           const isActive = activeTab === tab.key
           return (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className="flex items-center gap-1.5 px-1 pb-2 text-xs cursor-pointer"
+              className="flex items-center gap-1.5 px-1 cursor-pointer"
               style={{
                 background: 'none',
                 border: 'none',
@@ -360,7 +439,7 @@ export function TasksPanel() {
       {activeTab === 'notes' && (
         <div className="flex flex-col items-center justify-center flex-1 gap-2" style={{ color: 'var(--folk-text-muted)' }}>
           <Icon name="sticky_note_2" size={24} className="text-gray-7" />
-          <span className="text-sm" style={{ fontSize: 13 }}>No notes yet</span>
+          <span style={{ fontSize: 13 }}>No notes yet</span>
         </div>
       )}
     </div>
