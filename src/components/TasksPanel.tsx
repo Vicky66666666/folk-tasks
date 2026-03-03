@@ -268,6 +268,7 @@ function TaskRow({
   onPriorityChange: (id: number, priority: Priority) => void
 }) {
   const done = task.status === 'done'
+  const [isHovered, setIsHovered] = useState(false)
   const [pickerAnchor, setPickerAnchor] = useState<DOMRect | null>(null)
 
   const handlePriorityClick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -280,84 +281,104 @@ function TaskRow({
     <div
       className="flex items-center w-full"
       style={{
-        gap: 8,
-        paddingLeft: 24,
+        gap: 4,
+        paddingLeft: 6,
         paddingRight: 24,
         paddingTop: 12,
         paddingBottom: 12,
-        background: 'white',
+        background: isHovered ? '#f9f9f9' : 'white',
       }}
-      onMouseEnter={e => (e.currentTarget.style.background = '#f9f9f9')}
-      onMouseLeave={e => (e.currentTarget.style.background = 'white')}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <CircleCheckbox done={done} onToggle={() => onToggle(task.id)} />
-
-      {/* Priority button */}
-      <button
-        onClick={handlePriorityClick}
-        className="flex-shrink-0"
+      {/* Selection checkbox — hidden until hover */}
+      <div
         style={{
-          background: 'transparent',
-          border: 'none',
-          padding: 0,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          opacity: done ? 0.5 : 1,
+          width: 12,
+          height: 12,
+          flexShrink: 0,
+          background: 'white',
+          border: '1px solid rgba(0,0,0,0.27)',
+          opacity: isHovered ? 1 : 0,
+          transition: 'opacity 0.1s',
         }}
-        title="Change priority"
-      >
-        <PriorityIcon priority={task.priority} />
-      </button>
-
-      {pickerAnchor && (
-        <PriorityPicker
-          current={task.priority}
-          anchorRect={pickerAnchor}
-          onSelect={p => onPriorityChange(task.id, p)}
-          onClose={() => setPickerAnchor(null)}
-        />
-      )}
-
-      {/* Title */}
-      <span
-        className="flex-1 min-w-0"
-        style={{
-          color: '#202020',
-          fontSize: 13,
-          fontWeight: 500,
-          letterSpacing: '-0.04px',
-          lineHeight: '19px',
-          opacity: done ? 0.5 : 1,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {task.title}
-      </span>
-
-      {/* Due date */}
-      <span
-        className="flex-shrink-0"
-        style={{
-          color: task.overdue && !done ? '#e5484d' : '#8c8c8c',
-          fontSize: done ? 13 : 12,
-          fontWeight: 500,
-          letterSpacing: done ? '-0.04px' : undefined,
-          opacity: done ? 0.5 : 1,
-        }}
-      >
-        {task.dueDate}
-      </span>
-
-      {/* Assignee avatar */}
-      <img
-        src={task.assigneeAvatar}
-        alt=""
-        className="rounded-full object-cover flex-shrink-0"
-        style={{ width: 16, height: 16, opacity: done ? 0.5 : 1 }}
       />
+
+      {/* Main content */}
+      <div className="flex items-center flex-1 min-w-0" style={{ gap: 8 }}>
+        <CircleCheckbox done={done} onToggle={() => onToggle(task.id)} />
+
+        {/* Priority button */}
+        <button
+          onClick={handlePriorityClick}
+          className="flex-shrink-0"
+          style={{
+            background: 'transparent',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            opacity: done ? 0.5 : 1,
+          }}
+          title="Change priority"
+        >
+          <PriorityIcon priority={task.priority} />
+        </button>
+
+        {pickerAnchor && (
+          <PriorityPicker
+            current={task.priority}
+            anchorRect={pickerAnchor}
+            onSelect={p => onPriorityChange(task.id, p)}
+            onClose={() => setPickerAnchor(null)}
+          />
+        )}
+
+        {/* Title */}
+        <span
+          className="flex-1 min-w-0"
+          style={{
+            color: '#202020',
+            fontSize: 13,
+            fontWeight: 500,
+            letterSpacing: '-0.04px',
+            lineHeight: '19px',
+            opacity: done ? 0.5 : 1,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {task.title}
+        </span>
+      </div>
+
+      {/* Right side */}
+      <div
+        className="flex items-center flex-shrink-0"
+        style={{ gap: 8, opacity: done ? 0.5 : 1 }}
+      >
+        {/* Due date */}
+        <span
+          style={{
+            color: task.overdue && !done ? '#e5484d' : isHovered || done ? '#626262' : '#202020',
+            fontSize: 12,
+            fontWeight: 500,
+            letterSpacing: '-0.04px',
+          }}
+        >
+          {task.dueDate}
+        </span>
+
+        {/* Assignee avatar */}
+        <img
+          src={task.assigneeAvatar}
+          alt=""
+          className="rounded-full object-cover flex-shrink-0"
+          style={{ width: 16, height: 16 }}
+        />
+      </div>
     </div>
   )
 }
