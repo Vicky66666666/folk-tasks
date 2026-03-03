@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react'
+
 interface IconProps {
   /** Material Symbols Sharp icon name, e.g. "check", "arrow_forward", "close" */
   name: string
@@ -9,15 +11,18 @@ interface IconProps {
   fill?: 0 | 1
   /** Extra Tailwind classes, e.g. "text-gray-11 hover:text-gray-12" */
   className?: string
+  /** Inline style overrides, e.g. { color: 'rgba(0,0,0,0.61)' } */
+  style?: CSSProperties
 }
 
-export function Icon({ name, size = 16, weight = 400, fill = 0, className }: IconProps) {
+export function Icon({ name, size = 16, weight = 400, fill = 0, className, style }: IconProps) {
   return (
     <span
       className={`folk-icon${className ? ` ${className}` : ''}`}
       style={{
         fontSize: size,
         fontVariationSettings: `'FILL' ${fill}, 'wght' ${weight}, 'GRAD' 0, 'opsz' ${size}`,
+        ...style,
       }}
       aria-hidden="true"
     >
