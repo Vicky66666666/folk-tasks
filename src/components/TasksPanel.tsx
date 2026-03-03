@@ -458,6 +458,102 @@ const pillStyle: React.CSSProperties = {
   whiteSpace: 'nowrap',
 }
 
+// ─── Schedule options ─────────────────────────────────────────────────────────
+
+const TIME_OPTIONS: string[] = (() => {
+  const opts: string[] = []
+  for (let h = 0; h < 24; h++) {
+    const period = h < 12 ? 'AM' : 'PM'
+    const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h
+    opts.push(`${hour12}:00 ${period}`)
+    opts.push(`${hour12}:30 ${period}`)
+  }
+  return opts
+})()
+
+const REPEAT_OPTIONS = [
+  'Every day',
+  'Every week day',
+  'Every week',
+  'Every 2 weeks',
+  'Every month',
+  'Every year',
+  'Custom',
+]
+
+const REMINDER_OPTIONS = [
+  'When task is due',
+  '5 min before',
+  '10 min before',
+  '30 min before',
+  '1 hour before',
+  'Custom',
+]
+
+// ─── Sub-picker (time / repeat / reminder) ────────────────────────────────────
+
+function SubPicker({
+  options, current, anchorRect, onSelect, onClose,
+}: {
+  options: string[]
+  current: string | null
+  anchorRect: DOMRect
+  onSelect: (v: string) => void
+  onClose: () => void
+}) {
+  const pickerWidth = 188
+  const spaceRight = window.innerWidth - anchorRect.right - 8
+  const left = spaceRight >= pickerWidth ? anchorRect.right + 4 : anchorRect.left - pickerWidth - 4
+  const top  = Math.min(anchorRect.top, window.innerHeight - 260)
+
+  return createPortal(
+    <>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 1003 }} onMouseDown={onClose} />
+      <div
+        style={{
+          position: 'fixed', top, left,
+          zIndex: 1004, width: pickerWidth,
+          background: 'white', borderRadius: 8,
+          border: '1px solid rgba(141,141,141,0.24)',
+          boxShadow: '0px 9px 24px rgba(24,26,27,0.16), 0px 3px 6px rgba(24,26,27,0.08)',
+          overflow: 'hidden', maxHeight: 244, overflowY: 'auto',
+        }}
+        onMouseDown={e => e.stopPropagation()}
+      >
+        <div style={{ padding: '4px 4px' }}>
+          {options.map(opt => (
+            <button
+              key={opt}
+              className="flex items-center w-full"
+              style={{
+                gap: 8, height: 32, paddingLeft: 8, paddingRight: 8,
+                border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left',
+                borderRadius: 4,
+                fontFamily: 'Inter, sans-serif', fontSize: 13,
+                fontWeight: current === opt ? 500 : 400,
+                color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.04px',
+              }}
+              onMouseEnter={e => { if (current !== opt) e.currentTarget.style.background = 'rgba(0,0,0,0.04)' }}
+              onMouseLeave={e => { if (current !== opt) e.currentTarget.style.background = 'transparent' }}
+              onClick={() => { onSelect(opt); onClose() }}
+            >
+              <div style={{ width: 14, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {current === opt && (
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M2 7L5.5 10.5L12 3.5" stroke="rgba(0,0,0,0.61)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </div>
+              <span>{opt}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </>,
+    document.body
+  )
+}
+
 // ─── Assignee picker ──────────────────────────────────────────────────────────
 
 function AssigneePicker({
@@ -564,14 +660,26 @@ const DOW_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 function DatePicker({
   current, anchorRect, onSelect, onClose,
+  time, onTimeChange,
+  repeat, onRepeatChange,
+  reminder, onReminderChange,
 }: {
   current: Date | null
   anchorRect: DOMRect
   onSelect: (d: Date | null) => void
   onClose: () => void
+  time: string | null
+  onTimeChange: (t: string | null) => void
+  repeat: string | null
+  onRepeatChange: (r: string | null) => void
+  reminder: string | null
+  onReminderChange: (rem: string | null) => void
 }) {
   const today = startOfDay(new Date())
   const [viewMonth, setViewMonth] = useState(startOfDay(current || today))
+  const [timeAnchor,     setTimeAnchor]     = useState<DOMRect | null>(null)
+  const [repeatAnchor,   setRepeatAnchor]   = useState<DOMRect | null>(null)
+  const [reminderAnchor, setReminderAnchor] = useState<DOMRect | null>(null)
 
   const year  = viewMonth.getFullYear()
   const month = viewMonth.getMonth()
@@ -701,39 +809,70 @@ function DatePicker({
           })}
         </div>
 
-        {/* No date footer */}
+        {/* Footer rows: Time / Remind me / Repeat */}
         <div style={{ borderTop: '1px solid rgba(0,0,0,0.08)', padding: '4px 4px' }}>
-          <button
-            className="flex items-center w-full"
-            style={{ gap: 8, height: 32, paddingLeft: 12, paddingRight: 12, border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 6 }}
-            onClick={() => { onSelect(null); onClose() }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-          >
-            <Icon name="event_busy" size={14} style={{ color: 'rgba(0,0,0,0.4)', flexShrink: 0 }} />
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.61)', letterSpacing: '-0.04px' }}>No date</span>
-          </button>
-        </div>
-
-        {/* Time / Remind me / Repeat footer */}
-        <div style={{ borderTop: '1px solid rgba(0,0,0,0.08)', padding: '4px 4px' }}>
-          {[
-            { icon: 'schedule',      label: '9 AM' },
-            { icon: 'notifications', label: 'Remind me' },
-            { icon: 'replay',        label: 'Repeat' },
-          ].map(row => (
-            <button
-              key={row.label}
-              className="flex items-center w-full"
-              style={{ gap: 8, height: 28, paddingLeft: 6, paddingRight: 8, border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.04px' }}
+          {/* Time row */}
+          {(
+            [
+              { icon: 'schedule',      value: time,     defaultLabel: '9 AM',      onOpen: setTimeAnchor,     onClear: () => onTimeChange(null) },
+              { icon: 'notifications', value: reminder, defaultLabel: 'Remind me', onOpen: setReminderAnchor, onClear: () => onReminderChange(null) },
+              { icon: 'replay',        value: repeat,   defaultLabel: 'Repeat',    onOpen: setRepeatAnchor,   onClear: () => onRepeatChange(null) },
+            ] as { icon: string; value: string | null; defaultLabel: string; onOpen: (r: DOMRect) => void; onClear: () => void }[]
+          ).map(row => (
+            <div
+              key={row.defaultLabel}
+              className="flex items-center"
+              style={{ height: 28, paddingLeft: 6, paddingRight: 8, gap: 8, borderRadius: 4, cursor: 'pointer' }}
+              onClick={e => row.onOpen(e.currentTarget.getBoundingClientRect())}
               onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
-              <Icon name={row.icon} size={16} style={{ color: 'rgba(0,0,0,0.61)', flexShrink: 0 }} />
-              <span>{row.label}</span>
-            </button>
+              <Icon name={row.icon} size={16} style={{ color: row.value ? 'rgba(0,0,0,0.87)' : 'rgba(0,0,0,0.61)', flexShrink: 0 }} />
+              <span style={{ flex: 1, fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.04px' }}>
+                {row.value || row.defaultLabel}
+              </span>
+              {row.value && (
+                <div
+                  onClick={e => { e.stopPropagation(); row.onClear() }}
+                  style={{ width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', flexShrink: 0 }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.08)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <Icon name="close" size={12} style={{ color: 'rgba(0,0,0,0.4)' }} />
+                </div>
+              )}
+            </div>
           ))}
         </div>
+
+        {/* Sub-pickers */}
+        {timeAnchor && (
+          <SubPicker
+            options={TIME_OPTIONS}
+            current={time}
+            anchorRect={timeAnchor}
+            onSelect={v => { onTimeChange(v); setTimeAnchor(null) }}
+            onClose={() => setTimeAnchor(null)}
+          />
+        )}
+        {reminderAnchor && (
+          <SubPicker
+            options={REMINDER_OPTIONS}
+            current={reminder}
+            anchorRect={reminderAnchor}
+            onSelect={v => { onReminderChange(v); setReminderAnchor(null) }}
+            onClose={() => setReminderAnchor(null)}
+          />
+        )}
+        {repeatAnchor && (
+          <SubPicker
+            options={REPEAT_OPTIONS}
+            current={repeat}
+            anchorRect={repeatAnchor}
+            onSelect={v => { onRepeatChange(v); setRepeatAnchor(null) }}
+            onClose={() => setRepeatAnchor(null)}
+          />
+        )}
       </div>
     </>,
     document.body
@@ -756,6 +895,10 @@ function NewTaskForm({
   const [assignee, setAssignee] = useState<AssigneeOption>(ASSIGNEES[0])
   const [dueDate, setDueDate] = useState<Date | null>(null)
   const [createMore, setCreateMore] = useState(false)
+
+  const [time,     setTime]     = useState<string | null>(null)
+  const [repeat,   setRepeat]   = useState<string | null>(null)
+  const [reminder, setReminder] = useState<string | null>(null)
 
   const [priorityAnchor, setPriorityAnchor]   = useState<DOMRect | null>(null)
   const [assigneeAnchor, setAssigneeAnchor]   = useState<DOMRect | null>(null)
@@ -780,6 +923,7 @@ function NewTaskForm({
     if (createMore) {
       setTitle(''); setDescription(''); setPriority('none')
       setAssignee(ASSIGNEES[0]); setDueDate(null)
+      setTime(null); setRepeat(null); setReminder(null)
       titleRef.current?.focus()
     } else {
       onClose()
@@ -941,6 +1085,9 @@ function NewTaskForm({
           anchorRect={dateAnchor}
           onSelect={d => setDueDate(d)}
           onClose={() => setDateAnchor(null)}
+          time={time}       onTimeChange={setTime}
+          repeat={repeat}   onRepeatChange={setRepeat}
+          reminder={reminder} onReminderChange={setReminder}
         />
       )}
     </>,
