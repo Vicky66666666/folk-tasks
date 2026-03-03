@@ -814,10 +814,10 @@ function DatePicker({
           {/* Time row */}
           {(
             [
-              { icon: 'schedule',      value: time,     defaultLabel: '9 AM',      onOpen: setTimeAnchor,     onClear: () => onTimeChange(null) },
+              { icon: 'schedule',      value: time,     defaultLabel: '9 AM',      onOpen: setTimeAnchor,     onClear: () => onTimeChange(null),     noClear: true },
               { icon: 'notifications', value: reminder, defaultLabel: 'Remind me', onOpen: setReminderAnchor, onClear: () => onReminderChange(null) },
               { icon: 'replay',        value: repeat,   defaultLabel: 'Repeat',    onOpen: setRepeatAnchor,   onClear: () => onRepeatChange(null) },
-            ] as { icon: string; value: string | null; defaultLabel: string; onOpen: (r: DOMRect) => void; onClear: () => void }[]
+            ] as { icon: string; value: string | null; defaultLabel: string; onOpen: (r: DOMRect) => void; onClear: () => void; noClear?: boolean }[]
           ).map(row => (
             <div
               key={row.defaultLabel}
@@ -831,7 +831,7 @@ function DatePicker({
               <span style={{ flex: 1, fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.04px' }}>
                 {row.value || row.defaultLabel}
               </span>
-              {row.value && (
+              {row.value && !row.noClear && (
                 <div
                   onClick={e => { e.stopPropagation(); row.onClear() }}
                   style={{ width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', flexShrink: 0 }}
@@ -934,7 +934,7 @@ function NewTaskForm({
     <>
       {/* Backdrop */}
       <div
-        style={{ position: 'fixed', inset: 0, zIndex: 999 }}
+        style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.32)' }}
         onMouseDown={onClose}
       />
 
