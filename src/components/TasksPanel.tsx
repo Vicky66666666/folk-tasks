@@ -197,12 +197,14 @@ function SectionHeader({
   showPlus,
   collapsed,
   onToggle,
+  isFirst,
 }: {
   label: string
   count: number
   showPlus?: boolean
   collapsed?: boolean
   onToggle: () => void
+  isFirst?: boolean
 }) {
   return (
     <div
@@ -210,6 +212,7 @@ function SectionHeader({
       style={{
         height: 36,
         background: '#f9f9f9',
+        borderTop: isFirst ? undefined : '1px solid #e1e1e1',
         borderBottom: '1px solid #e1e1e1',
         paddingLeft: 5,
         paddingRight: 8,
@@ -294,60 +297,79 @@ function TasksContent({ tasks, onToggle }: { tasks: Task[]; onToggle: (id: numbe
 
   return (
     <div className="flex flex-col flex-1 overflow-y-auto">
-      {/* Overdue */}
-      {overdue.length > 0 && (
-        <>
-          <SectionHeader
-            label="Overdue"
-            count={overdue.length}
-            collapsed={collapsed['overdue']}
-            onToggle={() => toggle('overdue')}
-          />
-          {!collapsed['overdue'] && overdue.map(t => <TaskRow key={t.id} task={t} onToggle={onToggle} />)}
-        </>
-      )}
+      {/* Determine which section renders first to skip its top border */}
+      {(() => {
+        const sections = [
+          overdue.length > 0 && 'overdue',
+          today.length > 0 && 'today',
+          upcoming.length > 0 && 'upcoming',
+          completed.length > 0 && 'completed',
+        ].filter(Boolean) as string[]
+        const firstSection = sections[0]
 
-      {/* Today */}
-      {today.length > 0 && (
-        <>
-          <SectionHeader
-            label="Today"
-            count={today.length}
-            showPlus
-            collapsed={collapsed['today']}
-            onToggle={() => toggle('today')}
-          />
-          {!collapsed['today'] && today.map(t => <TaskRow key={t.id} task={t} onToggle={onToggle} />)}
-        </>
-      )}
+        return (
+          <>
+            {/* Overdue */}
+            {overdue.length > 0 && (
+              <>
+                <SectionHeader
+                  label="Overdue"
+                  count={overdue.length}
+                  isFirst={firstSection === 'overdue'}
+                  collapsed={collapsed['overdue']}
+                  onToggle={() => toggle('overdue')}
+                />
+                {!collapsed['overdue'] && overdue.map(t => <TaskRow key={t.id} task={t} onToggle={onToggle} />)}
+              </>
+            )}
 
-      {/* Upcoming */}
-      {upcoming.length > 0 && (
-        <>
-          <SectionHeader
-            label="Upcoming"
-            count={upcoming.length}
-            showPlus
-            collapsed={collapsed['upcoming']}
-            onToggle={() => toggle('upcoming')}
-          />
-          {!collapsed['upcoming'] && upcoming.map(t => <TaskRow key={t.id} task={t} onToggle={onToggle} />)}
-        </>
-      )}
+            {/* Today */}
+            {today.length > 0 && (
+              <>
+                <SectionHeader
+                  label="Today"
+                  count={today.length}
+                  showPlus
+                  isFirst={firstSection === 'today'}
+                  collapsed={collapsed['today']}
+                  onToggle={() => toggle('today')}
+                />
+                {!collapsed['today'] && today.map(t => <TaskRow key={t.id} task={t} onToggle={onToggle} />)}
+              </>
+            )}
 
-      {/* Completed */}
-      {completed.length > 0 && (
-        <>
-          <SectionHeader
-            label="Completed"
-            count={completed.length}
-            showPlus
-            collapsed={collapsed['completed']}
-            onToggle={() => toggle('completed')}
-          />
-          {!collapsed['completed'] && completed.map(t => <TaskRow key={t.id} task={t} onToggle={onToggle} />)}
-        </>
-      )}
+            {/* Upcoming */}
+            {upcoming.length > 0 && (
+              <>
+                <SectionHeader
+                  label="Upcoming"
+                  count={upcoming.length}
+                  showPlus
+                  isFirst={firstSection === 'upcoming'}
+                  collapsed={collapsed['upcoming']}
+                  onToggle={() => toggle('upcoming')}
+                />
+                {!collapsed['upcoming'] && upcoming.map(t => <TaskRow key={t.id} task={t} onToggle={onToggle} />)}
+              </>
+            )}
+
+            {/* Completed */}
+            {completed.length > 0 && (
+              <>
+                <SectionHeader
+                  label="Completed"
+                  count={completed.length}
+                  showPlus
+                  isFirst={firstSection === 'completed'}
+                  collapsed={collapsed['completed']}
+                  onToggle={() => toggle('completed')}
+                />
+                {!collapsed['completed'] && completed.map(t => <TaskRow key={t.id} task={t} onToggle={onToggle} />)}
+              </>
+            )}
+          </>
+        )
+      })()}
     </div>
   )
 }
