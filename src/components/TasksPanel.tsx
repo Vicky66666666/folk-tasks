@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '../folk'
 
@@ -383,6 +383,227 @@ function TaskRow({
   )
 }
 
+// ─── Toggle switch ────────────────────────────────────────────────────────────
+
+function ToggleSwitch({ on }: { on: boolean }) {
+  return (
+    <div
+      style={{
+        width: 28, height: 16, borderRadius: 100, flexShrink: 0,
+        background: on ? '#202020' : 'rgba(0,0,0,0.2)',
+        position: 'relative',
+        transition: 'background 0.15s',
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          width: 12, height: 12, borderRadius: '50%',
+          background: 'white',
+          top: 2,
+          left: on ? 14 : 2,
+          transition: 'left 0.15s',
+        }}
+      />
+    </div>
+  )
+}
+
+// ─── Pill button style ────────────────────────────────────────────────────────
+
+const pillStyle: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: 6,
+  height: 28, paddingLeft: 8, paddingRight: 10,
+  background: 'white', border: '1px solid #bbb', borderRadius: 100,
+  boxShadow: '0px 1px 1px 0px rgba(0,0,0,0.06)',
+  cursor: 'pointer',
+  fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 500, color: '#202020',
+  whiteSpace: 'nowrap',
+}
+
+// ─── New task form ────────────────────────────────────────────────────────────
+
+function NewTaskForm({
+  group,
+  onClose,
+  onCreate,
+}: {
+  group: string
+  onClose: () => void
+  onCreate: (task: Omit<Task, 'id'>) => void
+}) {
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [priority, setPriority] = useState<Priority>('none')
+  const [createMore, setCreateMore] = useState(false)
+  const [priorityAnchor, setPriorityAnchor] = useState<DOMRect | null>(null)
+  const titleRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { titleRef.current?.focus() }, [])
+
+  const priorityLabel = priority === 'none' ? 'No prio'
+    : priority.charAt(0).toUpperCase() + priority.slice(1)
+
+  const handleCreate = () => {
+    if (!title.trim()) return
+    onCreate({
+      title: title.trim(),
+      dueDate: 'Today',
+      assigneeAvatar: 'https://i.pravatar.cc/150?img=44',
+      status: 'todo',
+      priority,
+      group: group as Task['group'],
+    })
+    if (createMore) {
+      setTitle('')
+      setDescription('')
+      setPriority('none')
+      titleRef.current?.focus()
+    } else {
+      onClose()
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') { e.stopPropagation(); onClose() }
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleCreate()
+  }
+
+  return (
+    <div
+      style={{
+        background: 'white',
+        border: '1px solid #e1e1e1',
+        boxShadow: '0px 9px 24px 0px rgba(24,26,27,0.16), 0px 3px 6px 0px rgba(24,26,27,0.08), 0px 0px 1px 0px rgba(24,26,27,0.04)',
+        flexShrink: 0,
+      }}
+      onKeyDown={handleKeyDown}
+    >
+      {/* Top container */}
+      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 40 }}>
+
+        {/* Title + description */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <input
+            ref={titleRef}
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            placeholder="Task title"
+            style={{
+              border: 'none', outline: 'none', padding: 0, width: '100%',
+              fontFamily: '"Uxum Grotesque", sans-serif',
+              fontSize: 20, fontWeight: 500, lineHeight: '24px',
+              color: '#202020', background: 'transparent',
+            }}
+          />
+          <input
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            placeholder="Add description..."
+            style={{
+              border: 'none', outline: 'none', padding: 0, width: '100%',
+              fontFamily: 'Inter, sans-serif',
+              fontSize: 13, fontWeight: 400, lineHeight: '18px',
+              letterSpacing: '-0.04px',
+              color: 'rgba(0,0,0,0.87)', background: 'transparent',
+            }}
+          />
+        </div>
+
+        {/* Attribute pills */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+
+          {/* 1. Priority */}
+          <button
+            style={pillStyle}
+            onClick={e => { const r = e.currentTarget.getBoundingClientRect(); setPriorityAnchor(r) }}
+          >
+            <PriorityIcon priority={priority} />
+            <span>{priorityLabel}</span>
+          </button>
+
+          {/* 2. Assignee */}
+          <button style={pillStyle}>
+            <img src="https://i.pravatar.cc/150?img=44" alt="" style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0 }} />
+            <span>Jean</span>
+          </button>
+
+          {/* 3. Date */}
+          <button style={pillStyle}>
+            <Icon name="calendar_today" size={14} style={{ color: 'rgba(0,0,0,0.61)', flexShrink: 0 }} />
+            <span>Today</span>
+          </button>
+
+          {/* 4. Record */}
+          <button style={pillStyle}>
+            <img src="https://i.pravatar.cc/150?img=12" alt="" style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0 }} />
+            <span>Jane Cooper</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div
+        style={{
+          borderTop: '1px solid #e1e1e1',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 16px',
+        }}
+      >
+        {/* Create more toggle */}
+        <button
+          onClick={() => setCreateMore(v => !v)}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+        >
+          <ToggleSwitch on={createMore} />
+          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 500, color: 'rgba(0,0,0,0.61)' }}>
+            Create more
+          </span>
+        </button>
+
+        {/* Action buttons */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={onClose}
+            style={{
+              height: 28, paddingLeft: 12, paddingRight: 12,
+              background: 'white', border: '1px solid rgba(0,0,0,0.12)', borderRadius: 100,
+              fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500,
+              letterSpacing: '-0.04px', color: 'rgba(0,0,0,0.61)', cursor: 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleCreate}
+            style={{
+              height: 28, paddingLeft: 12, paddingRight: 12,
+              background: title.trim() ? '#202020' : 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 100,
+              fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500,
+              letterSpacing: '-0.04px',
+              color: title.trim() ? 'white' : 'rgba(0,0,0,0.3)',
+              cursor: title.trim() ? 'pointer' : 'default',
+              transition: 'background 0.15s, color 0.15s',
+            }}
+          >
+            Create task
+          </button>
+        </div>
+      </div>
+
+      {/* Priority picker portal */}
+      {priorityAnchor && (
+        <PriorityPicker
+          current={priority}
+          anchorRect={priorityAnchor}
+          onSelect={p => { setPriority(p); setPriorityAnchor(null) }}
+          onClose={() => setPriorityAnchor(null)}
+        />
+      )}
+    </div>
+  )
+}
+
 // ─── Section header ───────────────────────────────────────────────────────────
 
 function SectionHeader({
@@ -391,6 +612,7 @@ function SectionHeader({
   showPlus,
   collapsed,
   onToggle,
+  onOpenForm,
   isFirst,
 }: {
   label: string
@@ -398,6 +620,7 @@ function SectionHeader({
   showPlus?: boolean
   collapsed?: boolean
   onToggle: () => void
+  onOpenForm?: () => void
   isFirst?: boolean
 }) {
   return (
@@ -431,7 +654,7 @@ function SectionHeader({
         <button
           className="flex items-center justify-center flex-shrink-0"
           style={{ width: 28, height: 28, borderRadius: 100, background: 'transparent', border: 'none', cursor: 'pointer' }}
-          onClick={e => e.stopPropagation()}
+          onClick={e => { e.stopPropagation(); onOpenForm?.() }}
           onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
         >
@@ -456,10 +679,12 @@ function TasksContent({
   tasks,
   onToggle,
   onPriorityChange,
+  onCreate,
 }: {
   tasks: Task[]
   onToggle: (id: number) => void
   onPriorityChange: (id: number, priority: Priority) => void
+  onCreate: (task: Omit<Task, 'id'>) => void
 }) {
   const overdue   = tasks.filter(t => t.group === 'overdue'   && t.status === 'todo')
   const today     = tasks.filter(t => t.group === 'today'     && t.status === 'todo')
@@ -467,6 +692,7 @@ function TasksContent({
   const completed = tasks.filter(t => t.status === 'done')
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+  const [openFormGroup, setOpenFormGroup] = useState<string | null>(null)
   const toggle = (key: string) => setCollapsed(prev => ({ ...prev, [key]: !prev[key] }))
 
   const sections = [
@@ -476,6 +702,16 @@ function TasksContent({
     completed.length > 0 && 'completed',
   ].filter(Boolean) as string[]
   const firstSection = sections[0]
+
+  const renderForm = (group: string) =>
+    openFormGroup === group ? (
+      <NewTaskForm
+        key={`form-${group}`}
+        group={group}
+        onClose={() => setOpenFormGroup(null)}
+        onCreate={task => { onCreate(task); }}
+      />
+    ) : null
 
   return (
     <div className="flex flex-col flex-1 overflow-y-auto">
@@ -489,6 +725,7 @@ function TasksContent({
             collapsed={collapsed['overdue']}
             onToggle={() => toggle('overdue')}
           />
+          {renderForm('overdue')}
           {!collapsed['overdue'] && overdue.map(t =>
             <TaskRow key={t.id} task={t} onToggle={onToggle} onPriorityChange={onPriorityChange} />
           )}
@@ -505,7 +742,9 @@ function TasksContent({
             isFirst={firstSection === 'today'}
             collapsed={collapsed['today']}
             onToggle={() => toggle('today')}
+            onOpenForm={() => setOpenFormGroup('today')}
           />
+          {renderForm('today')}
           {!collapsed['today'] && today.map(t =>
             <TaskRow key={t.id} task={t} onToggle={onToggle} onPriorityChange={onPriorityChange} />
           )}
@@ -522,7 +761,9 @@ function TasksContent({
             isFirst={firstSection === 'upcoming'}
             collapsed={collapsed['upcoming']}
             onToggle={() => toggle('upcoming')}
+            onOpenForm={() => setOpenFormGroup('upcoming')}
           />
+          {renderForm('upcoming')}
           {!collapsed['upcoming'] && upcoming.map(t =>
             <TaskRow key={t.id} task={t} onToggle={onToggle} onPriorityChange={onPriorityChange} />
           )}
@@ -539,7 +780,9 @@ function TasksContent({
             isFirst={firstSection === 'completed'}
             collapsed={collapsed['completed']}
             onToggle={() => toggle('completed')}
+            onOpenForm={() => setOpenFormGroup('completed')}
           />
+          {renderForm('completed')}
           {!collapsed['completed'] && completed.map(t =>
             <TaskRow key={t.id} task={t} onToggle={onToggle} onPriorityChange={onPriorityChange} />
           )}
@@ -633,6 +876,10 @@ export function TasksPanel() {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, priority } : t))
   }
 
+  const handleCreate = (task: Omit<Task, 'id'>) => {
+    setTasks(prev => [...prev, { ...task, id: Date.now() }])
+  }
+
   const todoCount = tasks.filter(t => t.status === 'todo').length
 
   return (
@@ -682,7 +929,7 @@ export function TasksPanel() {
 
       {/* Tab content */}
       {activeTab === 'tasks' && (
-        <TasksContent tasks={tasks} onToggle={handleToggle} onPriorityChange={handlePriorityChange} />
+        <TasksContent tasks={tasks} onToggle={handleToggle} onPriorityChange={handlePriorityChange} onCreate={handleCreate} />
       )}
       {activeTab === 'interactions' && <InteractionsContent />}
       {activeTab === 'notes' && (
