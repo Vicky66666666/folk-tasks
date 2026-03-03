@@ -408,7 +408,7 @@ function SectionHeader({
         background: '#f9f9f9',
         borderTop: isFirst ? undefined : '1px solid #e1e1e1',
         borderBottom: '1px solid #e1e1e1',
-        paddingLeft: 5,
+        paddingLeft: 20,
         paddingRight: 8,
         flexShrink: 0,
       }}
