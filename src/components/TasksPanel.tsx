@@ -210,7 +210,6 @@ function SectionHeader({
       style={{
         height: 36,
         background: '#f9f9f9',
-        borderTop: '1px solid #e1e1e1',
         borderBottom: '1px solid #e1e1e1',
         paddingLeft: 5,
         paddingRight: 8,
