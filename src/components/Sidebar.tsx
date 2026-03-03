@@ -7,27 +7,57 @@ function NavItem({
 }) {
   return (
     <div
-      className="flex items-center gap-2 px-3 h-7 rounded cursor-pointer group"
+      className="flex items-center cursor-pointer"
       style={{
-        background: active ? 'var(--folk-bg-selected)' : 'transparent',
-        color: active ? 'var(--folk-text-primary)' : 'var(--folk-text-muted)',
+        gap: 8,
+        height: 28,
+        paddingLeft: 8,
+        paddingRight: 8,
+        paddingTop: 4,
+        paddingBottom: 4,
+        borderRadius: 6,
+        background: active ? 'rgba(0,0,0,0.04)' : 'transparent',
       }}
-      onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--folk-bg-hover)' }}
-      onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+      onMouseEnter={e => {
+        if (!active) (e.currentTarget as HTMLElement).style.background = 'rgba(0,0,0,0.02)'
+      }}
+      onMouseLeave={e => {
+        if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'
+      }}
     >
-      {emoji && <span className="text-xs w-4 text-center leading-none">{emoji}</span>}
-      {icon && !emoji && (
-        <Icon name={icon} size={14} className={active ? 'text-gray-12' : 'text-gray-9'} />
+      {emoji && (
+        <span className="flex-shrink-0" style={{ fontSize: 13, width: 16, textAlign: 'center', lineHeight: 1 }}>
+          {emoji}
+        </span>
       )}
-      <span className="text-xs flex-1" style={{ fontWeight: active ? 500 : 400 }}>{label}</span>
+      {icon && !emoji && (
+        <Icon name={icon} size={14} style={{ color: active ? 'rgba(0,0,0,0.87)' : 'rgba(0,0,0,0.61)', flexShrink: 0 }} />
+      )}
+      <span
+        className="flex-1 truncate"
+        style={{
+          fontSize: 13,
+          fontWeight: active ? 500 : 400,
+          color: active ? 'rgba(0,0,0,0.87)' : 'rgba(0,0,0,0.61)',
+          letterSpacing: '-0.04px',
+          lineHeight: '18px',
+        }}
+      >
+        {label}
+      </span>
       {count !== undefined && (
         <span
-          className="text-xs px-1 rounded min-w-[18px] text-center"
+          className="flex-shrink-0 flex items-center justify-center"
           style={{
-            background: count > 0 ? '#e5484d' : 'var(--folk-bg-selected)',
-            color: count > 0 ? '#fff' : 'var(--folk-text-muted)',
+            background: count > 0 ? '#e5484d' : 'rgba(0,0,0,0.08)',
+            color: count > 0 ? '#fff' : 'rgba(0,0,0,0.61)',
             fontSize: 10,
             fontWeight: 500,
+            borderRadius: 100,
+            minWidth: 16,
+            height: 16,
+            paddingLeft: 4,
+            paddingRight: 4,
           }}
         >
           {count}
@@ -39,14 +69,14 @@ function NavItem({
 
 function SectionLabel({ label }: { label: string }) {
   return (
-    <div className="px-3 pt-3 pb-1">
-      <span className="text-xs font-medium" style={{ color: 'var(--folk-text-muted)', fontSize: 11 }}>{label}</span>
+    <div style={{ paddingLeft: 12, paddingRight: 12, paddingTop: 8, paddingBottom: 4 }}>
+      <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(0,0,0,0.61)', lineHeight: '16px' }}>{label}</span>
     </div>
   )
 }
 
 function Divider() {
-  return <div className="mx-3 my-1" style={{ height: 1, background: 'var(--folk-separator)' }} />
+  return <div style={{ height: 1, background: 'rgba(0,0,0,0.08)', margin: '4px 0' }} />
 }
 
 export function Sidebar() {
@@ -54,26 +84,38 @@ export function Sidebar() {
     <div
       className="flex flex-col h-full overflow-y-auto"
       style={{
-        width: 176,
-        background: 'var(--folk-surface-default)',
-        borderRight: '1px solid var(--folk-separator)',
+        width: 240,
         flexShrink: 0,
+        background: 'white',
+        borderRight: '1px solid rgba(0,0,0,0.12)',
       }}
     >
-      {/* Workspace */}
-      <div className="flex items-center gap-2 px-3 h-12" style={{ borderBottom: '1px solid var(--folk-separator)' }}>
+      {/* Workspace header */}
+      <div
+        className="flex items-center"
+        style={{
+          gap: 8,
+          height: 48,
+          paddingLeft: 12,
+          paddingRight: 12,
+          borderBottom: '1px solid rgba(0,0,0,0.08)',
+          flexShrink: 0,
+        }}
+      >
         <div
-          className="w-5 h-5 rounded flex items-center justify-center text-xs"
-          style={{ background: 'var(--folk-bg-selected)' }}
+          className="flex items-center justify-center flex-shrink-0"
+          style={{ width: 20, height: 20, borderRadius: 6, background: '#283544', fontSize: 12 }}
         >
           <span>🍎</span>
         </div>
-        <span className="text-sm font-medium flex-1" style={{ color: 'var(--folk-text-primary)' }}>Apple</span>
-        <Icon name="expand_more" size={14} className="text-gray-9" />
+        <span style={{ fontSize: 13, fontWeight: 500, flex: 1, color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.04px' }}>
+          Apple
+        </span>
+        <Icon name="expand_more" size={14} style={{ color: 'rgba(0,0,0,0.61)' }} />
       </div>
 
       {/* Main nav */}
-      <div className="flex flex-col gap-0.5 py-2 px-1">
+      <div className="flex flex-col" style={{ gap: 2, padding: '8px 8px 4px' }}>
         <NavItem icon="search" label="Search" />
         <NavItem icon="notifications" label="Notifications" count={6} />
         <NavItem icon="mail" label="Messages" />
@@ -84,43 +126,48 @@ export function Sidebar() {
 
       <Divider />
 
-      {/* Lists */}
-      <div className="flex flex-col gap-0.5 py-1 px-1">
+      {/* Groups */}
+      <SectionLabel label="Shared to everyone" />
+      <div className="flex flex-col" style={{ gap: 2, padding: '0 8px 4px' }}>
         <NavItem emoji="🟡" label="Beta 2024: Attendees" />
-        <NavItem icon="business" label="Companies" active emoji="🏢" />
-        <div className="pl-4 flex flex-col gap-0.5">
+        <NavItem emoji="🔎" label="Companies" active />
+        <div className="flex flex-col" style={{ gap: 2, paddingLeft: 16 }}>
           <NavItem emoji="🇩🇪" label="Hong Kong" />
           <NavItem emoji="🇬🇧" label="London" />
-          <NavItem icon="flag" label="2024 followups" emoji="📋" />
+          <NavItem emoji="📬" label="2024 followups" />
         </div>
-        <div className="px-3">
-          <span className="text-xs cursor-pointer" style={{ color: 'var(--folk-text-muted)' }}>··· See all</span>
+        <div style={{ paddingLeft: 8, paddingTop: 2, paddingBottom: 2 }}>
+          <span style={{ fontSize: 13, color: 'rgba(0,0,0,0.61)', cursor: 'pointer', letterSpacing: '-0.04px' }}>
+            ··· See all
+          </span>
         </div>
       </div>
 
       <Divider />
 
       <SectionLabel label="Shared" />
-      <div className="flex flex-col gap-0.5 py-1 px-1">
+      <div className="flex flex-col" style={{ gap: 2, padding: '0 8px 4px' }}>
         <NavItem emoji="🟡" label="Suggestions: Berlin Dinner" />
       </div>
 
       <SectionLabel label="Private" />
-      <div className="flex flex-col gap-0.5 py-1 px-1">
+      <div className="flex flex-col" style={{ gap: 2, padding: '0 8px 4px' }}>
         <NavItem emoji="🇩🇪" label="Zurich Dinner, 27.02.25" />
         <NavItem emoji="🇸🇦" label="Riyadh-Dinner 27.01.2025" />
         <NavItem emoji="🏔️" label="Summit-Speakers (GP)" />
         <NavItem emoji="🇩🇪" label="Suggestions: Frankfurt" />
         <NavItem emoji="💰" label="All VCs" />
-        <div className="px-3">
-          <span className="text-xs cursor-pointer" style={{ color: 'var(--folk-text-muted)' }}>··· See all</span>
+        <div style={{ paddingLeft: 8, paddingTop: 2, paddingBottom: 2 }}>
+          <span style={{ fontSize: 13, color: 'rgba(0,0,0,0.61)', cursor: 'pointer', letterSpacing: '-0.04px' }}>
+            ··· See all
+          </span>
         </div>
       </div>
 
       {/* Bottom */}
       <div className="mt-auto">
         <Divider />
-        <div className="flex flex-col gap-0.5 py-2 px-1">
+        <div className="flex flex-col" style={{ gap: 2, padding: '8px 8px' }}>
           <NavItem icon="settings" label="Settings" />
           <NavItem icon="person_add" label="Invite members" />
         </div>
