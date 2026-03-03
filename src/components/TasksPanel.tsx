@@ -43,6 +43,43 @@ const PRIORITY_OPTIONS: { value: Priority; label: string; shortcut: string }[] =
   { value: 'low',    label: 'Low',         shortcut: '4' },
 ]
 
+// ─── Assignee definitions ─────────────────────────────────────────────────────
+
+interface AssigneeOption {
+  id: string
+  name: string
+  avatar?: string
+  initials?: string
+  color?: string
+}
+
+const ASSIGNEES: AssigneeOption[] = [
+  { id: 'none',  name: 'No assignee' },
+  { id: '1',     name: 'Bessie Cooper',  avatar: 'https://i.pravatar.cc/150?img=44' },
+  { id: '2',     name: 'Arlene McCoy',   initials: 'A', color: '#f59e0b' },
+  { id: '3',     name: 'Albert Flores',  avatar: 'https://i.pravatar.cc/150?img=12' },
+  { id: '4',     name: 'Marvin McKinney', initials: 'M', color: '#8b5cf6' },
+]
+
+// ─── Date helpers ─────────────────────────────────────────────────────────────
+
+function startOfDay(d: Date) {
+  const c = new Date(d); c.setHours(0, 0, 0, 0); return c
+}
+function formatDueDate(d: Date | null): string {
+  if (!d) return 'No date'
+  const today    = startOfDay(new Date())
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1)
+  const v = startOfDay(d)
+  if (v.getTime() === today.getTime())    return 'Today'
+  if (v.getTime() === tomorrow.getTime()) return 'Tomorrow'
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(d)
+}
+function formatTaskDate(d: Date | null): string {
+  if (!d) return ''
+  return formatDueDate(d)
+}
+
 // ─── Priority icon ─────────────────────────────────────────────────────────────
 
 function PriorityIcon({ priority }: { priority: Priority }) {
@@ -421,22 +458,288 @@ const pillStyle: React.CSSProperties = {
   whiteSpace: 'nowrap',
 }
 
+// ─── Assignee picker ──────────────────────────────────────────────────────────
+
+function AssigneePicker({
+  current, anchorRect, onSelect, onClose,
+}: {
+  current: string
+  anchorRect: DOMRect
+  onSelect: (a: AssigneeOption) => void
+  onClose: () => void
+}) {
+  const [search, setSearch] = useState('')
+  const filtered = ASSIGNEES.filter(a =>
+    a.name.toLowerCase().includes(search.toLowerCase())
+  )
+
+  return createPortal(
+    <>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 1001 }} onMouseDown={onClose} />
+      <div
+        style={{
+          position: 'fixed',
+          top: anchorRect.bottom + 6,
+          left: anchorRect.left,
+          zIndex: 1002,
+          width: 240,
+          background: 'white',
+          borderRadius: 8,
+          border: '1px solid rgba(141,141,141,0.24)',
+          boxShadow: '0px 9px 24px rgba(24,26,27,0.16), 0px 3px 6px rgba(24,26,27,0.08), 0px 0px 1px rgba(24,26,27,0.04)',
+          overflow: 'hidden',
+        }}
+        onMouseDown={e => e.stopPropagation()}
+      >
+        {/* Search */}
+        <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icon name="search" size={14} style={{ color: 'rgba(0,0,0,0.3)', flexShrink: 0 }} />
+          <input
+            autoFocus
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search member"
+            onKeyDown={e => e.key === 'Escape' && onClose()}
+            style={{ border: 'none', outline: 'none', padding: 0, flex: 1, fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#202020', background: 'transparent' }}
+          />
+        </div>
+        {/* Group label */}
+        <div style={{ padding: '6px 12px 2px', fontSize: 11, fontWeight: 500, color: 'rgba(0,0,0,0.4)', textTransform: 'uppercase', letterSpacing: '0.5px', fontFamily: 'Inter, sans-serif' }}>
+          Assign to
+        </div>
+        {/* Members */}
+        {filtered.map(a => (
+          <button
+            key={a.id}
+            className="flex items-center w-full"
+            style={{ gap: 8, height: 32, paddingLeft: 12, paddingRight: 12, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            onClick={() => { onSelect(a); onClose() }}
+          >
+            {a.id === 'none' ? (
+              <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name="account_circle" size={12} style={{ color: 'rgba(0,0,0,0.4)' }} />
+              </div>
+            ) : a.avatar ? (
+              <img src={a.avatar} alt="" style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0 }} />
+            ) : (
+              <div style={{ width: 16, height: 16, borderRadius: '50%', background: a.color || '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 9, fontWeight: 700, color: 'white' }}>
+                {a.initials}
+              </div>
+            )}
+            <span style={{ flex: 1, fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, color: '#202020', letterSpacing: '-0.04px' }}>{a.name}</span>
+            {current === a.id && (
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M2 7L5.5 10.5L12 3.5" stroke="rgba(0,0,0,0.61)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </button>
+        ))}
+        {/* Divider */}
+        <div style={{ height: 1, background: 'rgba(0,0,0,0.08)', margin: '4px 0' }} />
+        {/* Invite footer */}
+        <button
+          className="flex items-center w-full"
+          style={{ gap: 8, height: 32, paddingLeft: 12, paddingRight: 12, border: 'none', background: 'transparent', cursor: 'pointer' }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        >
+          <div style={{ width: 16, height: 16, borderRadius: '50%', border: '1.5px dashed rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Icon name="add" size={10} style={{ color: 'rgba(0,0,0,0.4)' }} />
+          </div>
+          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.61)', letterSpacing: '-0.04px' }}>
+            Invite &amp; assign new member
+          </span>
+        </button>
+      </div>
+    </>,
+    document.body
+  )
+}
+
+// ─── Date picker ──────────────────────────────────────────────────────────────
+
+const DOW_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+function DatePicker({
+  current, anchorRect, onSelect, onClose,
+}: {
+  current: Date | null
+  anchorRect: DOMRect
+  onSelect: (d: Date | null) => void
+  onClose: () => void
+}) {
+  const today = startOfDay(new Date())
+  const [viewMonth, setViewMonth] = useState(startOfDay(current || today))
+
+  const year  = viewMonth.getFullYear()
+  const month = viewMonth.getMonth()
+  const monthLabel = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(viewMonth)
+
+  // Build calendar grid (Mon-first)
+  const firstDay = new Date(year, month, 1)
+  let startOffset = firstDay.getDay() - 1  // 0=Mon
+  if (startOffset < 0) startOffset = 6
+  const cells: Date[] = []
+  for (let i = startOffset; i > 0; i--)
+    cells.push(new Date(year, month, 1 - i))
+  const lastDate = new Date(year, month + 1, 0).getDate()
+  for (let d = 1; d <= lastDate; d++)
+    cells.push(new Date(year, month, d))
+  while (cells.length % 7 !== 0)
+    cells.push(new Date(year, month, lastDate + (cells.length - startOffset - lastDate + 1)))
+
+  const isSameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+
+  const quickPicks = [
+    { label: 'Today',      date: today },
+    { label: 'Tomorrow',   date: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1) },
+    { label: 'In 3 days',  date: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3) },
+    { label: 'In 1 week',  date: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7) },
+    { label: 'In 2 weeks', date: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 14) },
+  ]
+
+  // Position: prefer below anchor, flip up if near bottom
+  const spaceBelow = window.innerHeight - anchorRect.bottom - 8
+  const pickerH = 340
+  const top = spaceBelow >= pickerH ? anchorRect.bottom + 6 : anchorRect.top - pickerH - 6
+  const left = Math.min(anchorRect.left, window.innerWidth - 288)
+
+  return createPortal(
+    <>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 1001 }} onMouseDown={onClose} />
+      <div
+        style={{
+          position: 'fixed', top, left,
+          zIndex: 1002, width: 280,
+          background: 'white', borderRadius: 8,
+          border: '1px solid rgba(141,141,141,0.24)',
+          boxShadow: '0px 9px 24px rgba(24,26,27,0.16), 0px 3px 6px rgba(24,26,27,0.08), 0px 0px 1px rgba(24,26,27,0.04)',
+          overflow: 'hidden',
+        }}
+        onMouseDown={e => e.stopPropagation()}
+      >
+        {/* Quick-pick chips */}
+        <div style={{ display: 'flex', gap: 6, padding: '10px 12px', borderBottom: '1px solid rgba(0,0,0,0.08)', flexWrap: 'wrap' }}>
+          {quickPicks.map(q => (
+            <button
+              key={q.label}
+              onClick={() => { onSelect(q.date); onClose() }}
+              style={{
+                height: 24, paddingLeft: 10, paddingRight: 10,
+                background: current && isSameDay(current, q.date) ? '#202020' : 'white',
+                color: current && isSameDay(current, q.date) ? 'white' : '#202020',
+                border: `1px solid ${current && isSameDay(current, q.date) ? '#202020' : '#bbb'}`,
+                borderRadius: 100, cursor: 'pointer',
+                fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 500,
+              }}
+            >
+              {q.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Month nav */}
+        <div style={{ display: 'flex', alignItems: 'center', padding: '10px 12px 6px' }}>
+          <button
+            onClick={() => setViewMonth(new Date(year, month - 1, 1))}
+            style={{ width: 24, height: 24, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4, flexShrink: 0 }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          >
+            <Icon name="chevron_left" size={16} style={{ color: 'rgba(0,0,0,0.61)' }} />
+          </button>
+          <span style={{ flex: 1, textAlign: 'center', fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, color: '#202020', letterSpacing: '-0.04px' }}>
+            {monthLabel}
+          </span>
+          <button
+            onClick={() => setViewMonth(new Date(year, month + 1, 1))}
+            style={{ width: 24, height: 24, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4, flexShrink: 0 }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          >
+            <Icon name="chevron_right" size={16} style={{ color: 'rgba(0,0,0,0.61)' }} />
+          </button>
+        </div>
+
+        {/* Day-of-week header */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', padding: '0 12px', marginBottom: 2 }}>
+          {DOW_LABELS.map(d => (
+            <div key={d} style={{ textAlign: 'center', fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: 'rgba(0,0,0,0.4)', paddingBottom: 4 }}>
+              {d}
+            </div>
+          ))}
+        </div>
+
+        {/* Calendar grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', padding: '0 12px 12px', gap: 2 }}>
+          {cells.map((cell, i) => {
+            const isCurrentM = cell.getMonth() === month
+            const isSelected = current ? isSameDay(cell, current) : false
+            const isTodayCell = isSameDay(cell, today)
+            return (
+              <button
+                key={i}
+                onClick={() => { onSelect(cell); onClose() }}
+                style={{
+                  height: 28, width: '100%',
+                  borderRadius: 6,
+                  border: isTodayCell && !isSelected ? '1px solid rgba(0,0,0,0.12)' : 'none',
+                  background: isSelected ? '#202020' : 'transparent',
+                  color: isSelected ? 'white' : isCurrentM ? '#202020' : 'rgba(0,0,0,0.3)',
+                  fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: isSelected ? 600 : 400,
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(0,0,0,0.04)' }}
+                onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent' }}
+              >
+                {cell.getDate()}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* No date footer */}
+        <div style={{ borderTop: '1px solid rgba(0,0,0,0.08)', padding: '4px 4px' }}>
+          <button
+            className="flex items-center w-full"
+            style={{ gap: 8, height: 32, paddingLeft: 12, paddingRight: 12, border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 6 }}
+            onClick={() => { onSelect(null); onClose() }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          >
+            <Icon name="event_busy" size={14} style={{ color: 'rgba(0,0,0,0.4)', flexShrink: 0 }} />
+            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.61)', letterSpacing: '-0.04px' }}>No date</span>
+          </button>
+        </div>
+      </div>
+    </>,
+    document.body
+  )
+}
+
 // ─── New task form ────────────────────────────────────────────────────────────
 
 function NewTaskForm({
-  group,
-  onClose,
-  onCreate,
+  group, anchorRect, onClose, onCreate,
 }: {
   group: string
+  anchorRect: DOMRect
   onClose: () => void
   onCreate: (task: Omit<Task, 'id'>) => void
 }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState<Priority>('none')
+  const [assignee, setAssignee] = useState<AssigneeOption>(ASSIGNEES[0])
+  const [dueDate, setDueDate] = useState<Date | null>(null)
   const [createMore, setCreateMore] = useState(false)
-  const [priorityAnchor, setPriorityAnchor] = useState<DOMRect | null>(null)
+
+  const [priorityAnchor, setPriorityAnchor]   = useState<DOMRect | null>(null)
+  const [assigneeAnchor, setAssigneeAnchor]   = useState<DOMRect | null>(null)
+  const [dateAnchor,     setDateAnchor]       = useState<DOMRect | null>(null)
   const titleRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { titleRef.current?.focus() }, [])
@@ -448,150 +751,156 @@ function NewTaskForm({
     if (!title.trim()) return
     onCreate({
       title: title.trim(),
-      dueDate: 'Today',
-      assigneeAvatar: 'https://i.pravatar.cc/150?img=44',
+      dueDate: dueDate ? formatTaskDate(dueDate) : 'No date',
+      assigneeAvatar: assignee.avatar ?? 'https://i.pravatar.cc/150?img=44',
       status: 'todo',
       priority,
       group: group as Task['group'],
     })
     if (createMore) {
-      setTitle('')
-      setDescription('')
-      setPriority('none')
+      setTitle(''); setDescription(''); setPriority('none')
+      setAssignee(ASSIGNEES[0]); setDueDate(null)
       titleRef.current?.focus()
     } else {
       onClose()
     }
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') { e.stopPropagation(); onClose() }
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleCreate()
-  }
+  // Position modal: right-align with tasks panel (anchorRect is the "+" button)
+  const modalW = 440
+  const left = Math.max(8, anchorRect.right - modalW)
+  const top  = anchorRect.bottom + 8
 
-  return (
-    <div
-      style={{
-        background: 'white',
-        border: '1px solid #e1e1e1',
-        boxShadow: '0px 9px 24px 0px rgba(24,26,27,0.16), 0px 3px 6px 0px rgba(24,26,27,0.08), 0px 0px 1px 0px rgba(24,26,27,0.04)',
-        flexShrink: 0,
-      }}
-      onKeyDown={handleKeyDown}
-    >
-      {/* Top container */}
-      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 40 }}>
+  return createPortal(
+    <>
+      {/* Backdrop */}
+      <div
+        style={{ position: 'fixed', inset: 0, zIndex: 999 }}
+        onMouseDown={onClose}
+      />
 
-        {/* Title + description */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <input
-            ref={titleRef}
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            placeholder="Task title"
-            style={{
-              border: 'none', outline: 'none', padding: 0, width: '100%',
-              fontFamily: '"Uxum Grotesque", sans-serif',
-              fontSize: 20, fontWeight: 500, lineHeight: '24px',
-              color: '#202020', background: 'transparent',
-            }}
-          />
-          <input
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            placeholder="Add description..."
-            style={{
-              border: 'none', outline: 'none', padding: 0, width: '100%',
-              fontFamily: 'Inter, sans-serif',
-              fontSize: 13, fontWeight: 400, lineHeight: '18px',
-              letterSpacing: '-0.04px',
-              color: 'rgba(0,0,0,0.87)', background: 'transparent',
-            }}
-          />
-        </div>
-
-        {/* Attribute pills */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-
-          {/* 1. Priority */}
-          <button
-            style={pillStyle}
-            onClick={e => { const r = e.currentTarget.getBoundingClientRect(); setPriorityAnchor(r) }}
-          >
-            <PriorityIcon priority={priority} />
-            <span>{priorityLabel}</span>
-          </button>
-
-          {/* 2. Assignee */}
-          <button style={pillStyle}>
-            <img src="https://i.pravatar.cc/150?img=44" alt="" style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0 }} />
-            <span>Jean</span>
-          </button>
-
-          {/* 3. Date */}
-          <button style={pillStyle}>
-            <Icon name="calendar_today" size={14} style={{ color: 'rgba(0,0,0,0.61)', flexShrink: 0 }} />
-            <span>Today</span>
-          </button>
-
-          {/* 4. Record */}
-          <button style={pillStyle}>
-            <img src="https://i.pravatar.cc/150?img=12" alt="" style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0 }} />
-            <span>Jane Cooper</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Footer */}
+      {/* Modal card */}
       <div
         style={{
-          borderTop: '1px solid #e1e1e1',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '10px 16px',
+          position: 'fixed', top, left, zIndex: 1000, width: modalW,
+          background: 'white',
+          border: '1px solid #e1e1e1',
+          borderRadius: 8,
+          boxShadow: '0px 9px 24px 0px rgba(24,26,27,0.16), 0px 3px 6px 0px rgba(24,26,27,0.08), 0px 0px 1px 0px rgba(24,26,27,0.04)',
+        }}
+        onMouseDown={e => e.stopPropagation()}
+        onKeyDown={e => {
+          if (e.key === 'Escape') { e.stopPropagation(); onClose() }
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleCreate()
         }}
       >
-        {/* Create more toggle */}
-        <button
-          onClick={() => setCreateMore(v => !v)}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-        >
-          <ToggleSwitch on={createMore} />
-          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 500, color: 'rgba(0,0,0,0.61)' }}>
-            Create more
-          </span>
-        </button>
+        {/* Top */}
+        <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 40 }}>
 
-        {/* Action buttons */}
-        <div style={{ display: 'flex', gap: 8 }}>
+          {/* Title + description */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <input
+              ref={titleRef}
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="Task title"
+              style={{
+                border: 'none', outline: 'none', padding: 0, width: '100%',
+                fontFamily: '"Uxum Grotesque", sans-serif',
+                fontSize: 20, fontWeight: 500, lineHeight: '24px',
+                color: '#202020', background: 'transparent',
+              }}
+            />
+            <input
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="Add description..."
+              style={{
+                border: 'none', outline: 'none', padding: 0, width: '100%',
+                fontFamily: 'Inter, sans-serif',
+                fontSize: 13, fontWeight: 400, lineHeight: '18px',
+                letterSpacing: '-0.04px', color: '#8c8c8c', background: 'transparent',
+              }}
+            />
+          </div>
+
+          {/* Attribute pills */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+
+            {/* 1. Priority */}
+            <button
+              style={pillStyle}
+              onClick={e => setPriorityAnchor(e.currentTarget.getBoundingClientRect())}
+            >
+              <PriorityIcon priority={priority} />
+              <span>{priorityLabel}</span>
+            </button>
+
+            {/* 2. Assignee */}
+            <button
+              style={pillStyle}
+              onClick={e => setAssigneeAnchor(e.currentTarget.getBoundingClientRect())}
+            >
+              {assignee.id === 'none' ? (
+                <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon name="account_circle" size={12} style={{ color: 'rgba(0,0,0,0.4)' }} />
+                </div>
+              ) : assignee.avatar ? (
+                <img src={assignee.avatar} alt="" style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0 }} />
+              ) : (
+                <div style={{ width: 16, height: 16, borderRadius: '50%', background: assignee.color || '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 9, fontWeight: 700, color: 'white' }}>
+                  {assignee.initials}
+                </div>
+              )}
+              <span>{assignee.id === 'none' ? 'Assignee' : assignee.name}</span>
+            </button>
+
+            {/* 3. Date */}
+            <button
+              style={pillStyle}
+              onClick={e => setDateAnchor(e.currentTarget.getBoundingClientRect())}
+            >
+              <Icon name="calendar_today" size={14} style={{ color: 'rgba(0,0,0,0.61)', flexShrink: 0 }} />
+              <span>{dueDate ? formatDueDate(dueDate) : 'Date'}</span>
+            </button>
+
+            {/* 4. Record */}
+            <button style={pillStyle}>
+              <img src="https://i.pravatar.cc/150?img=12" alt="" style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0 }} />
+              <span>Jane Cooper</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ borderTop: '1px solid #e1e1e1', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px' }}>
           <button
-            onClick={onClose}
-            style={{
-              height: 28, paddingLeft: 12, paddingRight: 12,
-              background: 'white', border: '1px solid rgba(0,0,0,0.12)', borderRadius: 100,
-              fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500,
-              letterSpacing: '-0.04px', color: 'rgba(0,0,0,0.61)', cursor: 'pointer',
-            }}
+            onClick={() => setCreateMore(v => !v)}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
-            Cancel
+            <ToggleSwitch on={createMore} />
+            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 500, color: 'rgba(0,0,0,0.61)' }}>
+              Create more
+            </span>
           </button>
-          <button
-            onClick={handleCreate}
-            style={{
-              height: 28, paddingLeft: 12, paddingRight: 12,
-              background: title.trim() ? '#202020' : 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 100,
-              fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500,
-              letterSpacing: '-0.04px',
-              color: title.trim() ? 'white' : 'rgba(0,0,0,0.3)',
-              cursor: title.trim() ? 'pointer' : 'default',
-              transition: 'background 0.15s, color 0.15s',
-            }}
-          >
-            Create task
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={onClose}
+              style={{ height: 28, paddingLeft: 12, paddingRight: 12, background: 'white', border: '1px solid rgba(0,0,0,0.12)', borderRadius: 100, fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, letterSpacing: '-0.04px', color: 'rgba(0,0,0,0.61)', cursor: 'pointer' }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreate}
+              style={{ height: 28, paddingLeft: 12, paddingRight: 12, background: title.trim() ? '#202020' : 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 100, fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, letterSpacing: '-0.04px', color: title.trim() ? 'white' : 'rgba(0,0,0,0.3)', cursor: title.trim() ? 'pointer' : 'default', transition: 'background 0.15s, color 0.15s' }}
+            >
+              Create task
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Priority picker portal */}
+      {/* Sub-pickers (z-index above modal) */}
       {priorityAnchor && (
         <PriorityPicker
           current={priority}
@@ -600,7 +909,24 @@ function NewTaskForm({
           onClose={() => setPriorityAnchor(null)}
         />
       )}
-    </div>
+      {assigneeAnchor && (
+        <AssigneePicker
+          current={assignee.id}
+          anchorRect={assigneeAnchor}
+          onSelect={a => setAssignee(a)}
+          onClose={() => setAssigneeAnchor(null)}
+        />
+      )}
+      {dateAnchor && (
+        <DatePicker
+          current={dueDate}
+          anchorRect={dateAnchor}
+          onSelect={d => setDueDate(d)}
+          onClose={() => setDateAnchor(null)}
+        />
+      )}
+    </>,
+    document.body
   )
 }
 
@@ -620,7 +946,7 @@ function SectionHeader({
   showPlus?: boolean
   collapsed?: boolean
   onToggle: () => void
-  onOpenForm?: () => void
+  onOpenForm?: (rect: DOMRect) => void
   isFirst?: boolean
 }) {
   return (
@@ -654,7 +980,7 @@ function SectionHeader({
         <button
           className="flex items-center justify-center flex-shrink-0"
           style={{ width: 28, height: 28, borderRadius: 100, background: 'transparent', border: 'none', cursor: 'pointer' }}
-          onClick={e => { e.stopPropagation(); onOpenForm?.() }}
+          onClick={e => { e.stopPropagation(); onOpenForm?.(e.currentTarget.getBoundingClientRect()) }}
           onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
         >
@@ -692,7 +1018,7 @@ function TasksContent({
   const completed = tasks.filter(t => t.status === 'done')
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
-  const [openFormGroup, setOpenFormGroup] = useState<string | null>(null)
+  const [formState, setFormState] = useState<{ group: string; rect: DOMRect } | null>(null)
   const toggle = (key: string) => setCollapsed(prev => ({ ...prev, [key]: !prev[key] }))
 
   const sections = [
@@ -703,92 +1029,75 @@ function TasksContent({
   ].filter(Boolean) as string[]
   const firstSection = sections[0]
 
-  const renderForm = (group: string) =>
-    openFormGroup === group ? (
-      <NewTaskForm
-        key={`form-${group}`}
-        group={group}
-        onClose={() => setOpenFormGroup(null)}
-        onCreate={task => { onCreate(task); }}
-      />
-    ) : null
-
   return (
-    <div className="flex flex-col flex-1 overflow-y-auto">
-      {/* Overdue */}
-      {overdue.length > 0 && (
-        <>
-          <SectionHeader
-            label="Overdue"
-            count={overdue.length}
-            isFirst={firstSection === 'overdue'}
-            collapsed={collapsed['overdue']}
-            onToggle={() => toggle('overdue')}
-          />
-          {renderForm('overdue')}
-          {!collapsed['overdue'] && overdue.map(t =>
-            <TaskRow key={t.id} task={t} onToggle={onToggle} onPriorityChange={onPriorityChange} />
-          )}
-        </>
-      )}
+    <>
+      <div className="flex flex-col flex-1 overflow-y-auto">
+        {/* Overdue */}
+        {overdue.length > 0 && (
+          <>
+            <SectionHeader label="Overdue" count={overdue.length}
+              isFirst={firstSection === 'overdue'}
+              collapsed={collapsed['overdue']} onToggle={() => toggle('overdue')}
+            />
+            {!collapsed['overdue'] && overdue.map(t =>
+              <TaskRow key={t.id} task={t} onToggle={onToggle} onPriorityChange={onPriorityChange} />
+            )}
+          </>
+        )}
 
-      {/* Today */}
-      {today.length > 0 && (
-        <>
-          <SectionHeader
-            label="Today"
-            count={today.length}
-            showPlus
-            isFirst={firstSection === 'today'}
-            collapsed={collapsed['today']}
-            onToggle={() => toggle('today')}
-            onOpenForm={() => setOpenFormGroup('today')}
-          />
-          {renderForm('today')}
-          {!collapsed['today'] && today.map(t =>
-            <TaskRow key={t.id} task={t} onToggle={onToggle} onPriorityChange={onPriorityChange} />
-          )}
-        </>
-      )}
+        {/* Today */}
+        {today.length > 0 && (
+          <>
+            <SectionHeader label="Today" count={today.length} showPlus
+              isFirst={firstSection === 'today'}
+              collapsed={collapsed['today']} onToggle={() => toggle('today')}
+              onOpenForm={rect => setFormState({ group: 'today', rect })}
+            />
+            {!collapsed['today'] && today.map(t =>
+              <TaskRow key={t.id} task={t} onToggle={onToggle} onPriorityChange={onPriorityChange} />
+            )}
+          </>
+        )}
 
-      {/* Upcoming */}
-      {upcoming.length > 0 && (
-        <>
-          <SectionHeader
-            label="Upcoming"
-            count={upcoming.length}
-            showPlus
-            isFirst={firstSection === 'upcoming'}
-            collapsed={collapsed['upcoming']}
-            onToggle={() => toggle('upcoming')}
-            onOpenForm={() => setOpenFormGroup('upcoming')}
-          />
-          {renderForm('upcoming')}
-          {!collapsed['upcoming'] && upcoming.map(t =>
-            <TaskRow key={t.id} task={t} onToggle={onToggle} onPriorityChange={onPriorityChange} />
-          )}
-        </>
-      )}
+        {/* Upcoming */}
+        {upcoming.length > 0 && (
+          <>
+            <SectionHeader label="Upcoming" count={upcoming.length} showPlus
+              isFirst={firstSection === 'upcoming'}
+              collapsed={collapsed['upcoming']} onToggle={() => toggle('upcoming')}
+              onOpenForm={rect => setFormState({ group: 'upcoming', rect })}
+            />
+            {!collapsed['upcoming'] && upcoming.map(t =>
+              <TaskRow key={t.id} task={t} onToggle={onToggle} onPriorityChange={onPriorityChange} />
+            )}
+          </>
+        )}
 
-      {/* Completed */}
-      {completed.length > 0 && (
-        <>
-          <SectionHeader
-            label="Completed"
-            count={completed.length}
-            showPlus
-            isFirst={firstSection === 'completed'}
-            collapsed={collapsed['completed']}
-            onToggle={() => toggle('completed')}
-            onOpenForm={() => setOpenFormGroup('completed')}
-          />
-          {renderForm('completed')}
-          {!collapsed['completed'] && completed.map(t =>
-            <TaskRow key={t.id} task={t} onToggle={onToggle} onPriorityChange={onPriorityChange} />
-          )}
-        </>
+        {/* Completed */}
+        {completed.length > 0 && (
+          <>
+            <SectionHeader label="Completed" count={completed.length} showPlus
+              isFirst={firstSection === 'completed'}
+              collapsed={collapsed['completed']} onToggle={() => toggle('completed')}
+              onOpenForm={rect => setFormState({ group: 'completed', rect })}
+            />
+            {!collapsed['completed'] && completed.map(t =>
+              <TaskRow key={t.id} task={t} onToggle={onToggle} onPriorityChange={onPriorityChange} />
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Modal form (portal) */}
+      {formState && (
+        <NewTaskForm
+          group={formState.group}
+          anchorRect={formState.rect}
+          onClose={() => setFormState(null)}
+          onCreate={task => { onCreate(task) }}
+        />
       )}
-    </div>
+    </>
   )
 }
 
