@@ -21,17 +21,17 @@ interface Task {
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 const TASKS: Task[] = [
-  { id: 1,  title: 'Call back for Y project', dueDate: 'Apr 2', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', priority: 'urgent', overdue: true, group: 'overdue' },
-  { id: 2,  title: 'Send proposal to Johnson & Co', dueDate: 'Apr 2', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', priority: 'none', overdue: true, group: 'overdue' },
-  { id: 3,  title: 'Call back for Y project', dueDate: 'Apr 2', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', priority: 'none', group: 'today' },
-  { id: 4,  title: 'Review Q2 forecast', dueDate: 'Apr 2', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', priority: 'none', group: 'today' },
-  { id: 5,  title: 'Call back for Y project', dueDate: 'Apr 2', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', priority: 'none', group: 'upcoming' },
-  { id: 6,  title: 'Follow up with Berlin office', dueDate: 'Apr 2', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', priority: 'none', group: 'upcoming' },
-  { id: 7,  title: 'Call back for Y project', dueDate: 'Apr 2', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', priority: 'none', group: 'upcoming' },
-  { id: 8,  title: 'Call back for Y project', dueDate: 'Apr 2', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'done', priority: 'none', group: 'completed' },
-  { id: 9,  title: 'Prepare investor deck', dueDate: 'Apr 2', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'done', priority: 'none', group: 'completed' },
-  { id: 10, title: 'Call back for Y project', dueDate: 'Apr 2', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'done', priority: 'none', group: 'completed' },
-  { id: 11, title: 'Call back for Y project', dueDate: 'Apr 2', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'done', priority: 'none', group: 'completed' },
+  { id: 1,  title: "Respond to Tim's funding request", dueDate: 'Mar 29', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', priority: 'urgent', overdue: true, group: 'overdue' },
+  { id: 2,  title: 'Send contract to Johnson & Co', dueDate: 'Apr 1', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', priority: 'high', overdue: true, group: 'overdue' },
+  { id: 3,  title: 'Review Series A deck', dueDate: 'Today', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', priority: 'medium', group: 'today' },
+  { id: 4,  title: 'Review Q2 forecast with Sarah', dueDate: 'Today', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', priority: 'none', group: 'today' },
+  { id: 5,  title: 'Reach out to Berlin contacts', dueDate: 'Apr 8', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', priority: 'high', group: 'upcoming' },
+  { id: 6,  title: 'Follow up with Berlin office', dueDate: 'Apr 10', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', priority: 'none', group: 'upcoming' },
+  { id: 7,  title: 'Schedule product demo for April', dueDate: 'Apr 14', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', priority: 'low', group: 'upcoming' },
+  { id: 8,  title: 'Intro call with Sequoia Capital', dueDate: 'Apr 1', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'done', priority: 'none', group: 'completed' },
+  { id: 9,  title: 'Prepare investor deck', dueDate: 'Mar 31', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'done', priority: 'none', group: 'completed' },
+  { id: 10, title: 'Send onboarding emails to cohort', dueDate: 'Mar 28', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'done', priority: 'none', group: 'completed' },
+  { id: 11, title: 'Update LinkedIn connections list', dueDate: 'Mar 27', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'done', priority: 'none', group: 'completed' },
 ]
 
 const PRIORITY_OPTIONS: { value: Priority; label: string; shortcut: string }[] = [
@@ -297,7 +297,7 @@ function SectionHeader({
     <div
       className="flex items-center"
       style={{
-        paddingLeft: 14,
+        paddingLeft: 24,
         paddingRight: 16,
         height: 32,
         gap: 6,

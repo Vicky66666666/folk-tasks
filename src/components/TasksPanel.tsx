@@ -21,16 +21,15 @@ interface Task {
 // ─── Data ────────────────────────────────────────────────────────────────────
 
 const TASKS: Task[] = [
-  { id: 1, title: 'Call back for Y project', dueDate: 'Apr 2', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', priority: 'none', overdue: true, group: 'overdue' },
-  { id: 2, title: 'Call back for Y project', dueDate: 'Apr 2', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', priority: 'medium', group: 'today' },
-  { id: 3, title: 'Call back for Y project', dueDate: 'Apr 2', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', priority: 'medium', group: 'today' },
-  { id: 4, title: 'Call back for Y project', dueDate: 'Apr 2', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', priority: 'none', group: 'upcoming' },
-  { id: 5, title: 'Call back for Y project', dueDate: 'Apr 2', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', priority: 'none', group: 'upcoming' },
-  { id: 6, title: 'Call back for Y project', dueDate: 'Apr 2', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', priority: 'none', group: 'upcoming' },
-  { id: 7, title: 'Call back for Y project', dueDate: 'Apr 2', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'done', priority: 'none', group: 'completed' },
-  { id: 8, title: 'Call back for Y project', dueDate: 'Apr 2', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'done', priority: 'none', group: 'completed' },
-  { id: 9, title: 'Call back for Y project', dueDate: 'Apr 2', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'done', priority: 'none', group: 'completed' },
-  { id: 10, title: 'Call back for Y project', dueDate: 'Apr 2', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'done', priority: 'none', group: 'completed' },
+  { id: 1, title: 'Follow up with Lisa Anderson', dueDate: 'Mar 28', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', priority: 'urgent', overdue: true, group: 'overdue' },
+  { id: 2, title: 'Send NDA to Acme Corp', dueDate: 'Apr 1', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', priority: 'high', overdue: true, group: 'overdue' },
+  { id: 3, title: 'Review partnership proposal', dueDate: 'Today', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', priority: 'medium', group: 'today' },
+  { id: 4, title: 'Schedule demo with Stripe team', dueDate: 'Today', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', priority: 'none', group: 'today' },
+  { id: 5, title: 'Prepare Q2 pipeline report', dueDate: 'Apr 10', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', priority: 'high', group: 'upcoming' },
+  { id: 6, title: 'Call with Series B investors', dueDate: 'Apr 12', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', priority: 'none', group: 'upcoming' },
+  { id: 7, title: 'Update CRM with Berlin contacts', dueDate: 'Apr 15', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', priority: 'low', group: 'upcoming' },
+  { id: 8, title: 'Intro call with Y Combinator', dueDate: 'Apr 1', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'done', priority: 'none', group: 'completed' },
+  { id: 9, title: 'Send thank you note to Jake', dueDate: 'Mar 30', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'done', priority: 'none', group: 'completed' },
 ]
 
 // ─── Priority definitions ─────────────────────────────────────────────────────
@@ -317,110 +316,80 @@ function TaskRow({
   }
 
   return (
-    <div
-      className="flex items-center w-full"
-      style={{
-        gap: 4,
-        paddingLeft: 6,
-        paddingRight: 24,
-        paddingTop: 12,
-        paddingBottom: 12,
-        background: isHovered ? '#f9f9f9' : 'white',
-        cursor: 'pointer',
-      }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      onClick={() => onOpen(task)}
-    >
-      {/* Selection checkbox — hidden until hover */}
+    <>
       <div
+        className="flex items-center"
         style={{
-          width: 12,
-          height: 12,
-          flexShrink: 0,
-          background: 'white',
-          border: '1px solid rgba(0,0,0,0.27)',
-          opacity: isHovered ? 1 : 0,
-          transition: 'opacity 0.1s',
+          paddingLeft: 16,
+          paddingRight: 16,
+          height: 36,
+          gap: 8,
+          background: isHovered ? 'rgba(0,0,0,0.02)' : 'transparent',
+          cursor: 'pointer',
         }}
-      />
-
-      {/* Main content */}
-      <div className="flex items-center flex-1 min-w-0" style={{ gap: 8 }}>
-        <CircleCheckbox done={done} onToggle={() => onToggle(task.id)} />
-
-        {/* Priority button */}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        onClick={() => onOpen(task)}
+      >
+        {/* Priority icon */}
         <button
           onClick={handlePriorityClick}
-          className="flex-shrink-0"
           style={{
-            background: 'transparent',
-            border: 'none',
-            padding: 0,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            opacity: done ? 0.5 : 1,
+            background: 'none', border: 'none', padding: 0,
+            cursor: 'pointer', flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 16, height: 16,
+            opacity: isHovered || task.priority !== 'none' ? 1 : 0.4,
           }}
-          title="Change priority"
         >
           <PriorityIcon priority={task.priority} />
         </button>
 
-        {pickerAnchor && (
-          <PriorityPicker
-            current={task.priority}
-            anchorRect={pickerAnchor}
-            onSelect={p => onPriorityChange(task.id, p)}
-            onClose={() => setPickerAnchor(null)}
-          />
-        )}
+        {/* Checkbox */}
+        <CircleCheckbox done={done} onToggle={() => onToggle(task.id)} />
 
         {/* Title */}
         <span
-          className="flex-1 min-w-0"
+          className="flex-1 truncate"
           style={{
-            color: '#202020',
             fontSize: 13,
-            fontWeight: 500,
+            color: done ? 'rgba(0,0,0,0.38)' : 'rgba(0,0,0,0.87)',
             letterSpacing: '-0.04px',
-            lineHeight: '19px',
-            opacity: done ? 0.5 : 1,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
           }}
         >
           {task.title}
         </span>
-      </div>
 
-      {/* Right side */}
-      <div
-        className="flex items-center flex-shrink-0"
-        style={{ gap: 8, opacity: done ? 0.5 : 1 }}
-      >
-        {/* Due date */}
-        <span
-          style={{
-            color: task.overdue && !done ? '#e5484d' : isHovered || done ? '#626262' : '#202020',
-            fontSize: 12,
-            fontWeight: 500,
-            letterSpacing: '-0.04px',
-          }}
-        >
-          {task.dueDate}
-        </span>
+        {/* Date */}
+        {task.dueDate && (
+          <span
+            style={{
+              fontSize: 12,
+              color: task.overdue && !done ? '#e5484d' : done ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.45)',
+              flexShrink: 0,
+            }}
+          >
+            {task.dueDate}
+          </span>
+        )}
 
-        {/* Assignee avatar */}
+        {/* Avatar */}
         <img
           src={task.assigneeAvatar}
           alt=""
-          className="rounded-full object-cover flex-shrink-0"
-          style={{ width: 16, height: 16 }}
+          style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, opacity: done ? 0.4 : 1 }}
         />
       </div>
-    </div>
+
+      {pickerAnchor && (
+        <PriorityPicker
+          current={task.priority}
+          anchorRect={pickerAnchor}
+          onSelect={p => onPriorityChange(task.id, p)}
+          onClose={() => setPickerAnchor(null)}
+        />
+      )}
+    </>
   )
 }
 
@@ -1330,7 +1299,6 @@ function SectionHeader({
   collapsed,
   onToggle,
   onOpenForm,
-  isFirst,
 }: {
   label: string
   count: number
@@ -1338,44 +1306,47 @@ function SectionHeader({
   collapsed?: boolean
   onToggle: () => void
   onOpenForm?: (rect: DOMRect) => void
-  isFirst?: boolean
 }) {
+  const [hovered, setHovered] = React.useState(false)
   return (
     <div
-      className="flex items-center w-full cursor-pointer"
+      className="flex items-center cursor-pointer"
       style={{
-        height: 36,
-        background: '#f9f9f9',
-        borderTop: isFirst ? undefined : '1px solid #e1e1e1',
-        borderBottom: '1px solid #e1e1e1',
-        paddingLeft: 20,
+        paddingLeft: 24,
         paddingRight: 8,
+        height: 32,
+        gap: 6,
+        background: hovered ? 'rgba(0,0,0,0.02)' : 'transparent',
         flexShrink: 0,
       }}
       onClick={onToggle}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
-      <Icon
-        name={collapsed ? 'chevron_right' : 'expand_more'}
-        size={16}
-        style={{ color: 'rgba(0,0,0,0.61)', flexShrink: 0 }}
-      />
-      <div className="flex items-center flex-1" style={{ gap: 8, marginLeft: 4 }}>
-        <span style={{ color: '#202020', fontSize: 13, fontWeight: 500, letterSpacing: '-0.04px', lineHeight: '18px' }}>
-          {label}
-        </span>
-        <span style={{ color: '#8c8c8c', fontSize: 13, fontWeight: 500, letterSpacing: '-0.04px', lineHeight: '18px' }}>
-          {count}
-        </span>
-      </div>
+      <svg
+        width="12" height="12" viewBox="0 0 12 12" fill="none"
+        style={{
+          flexShrink: 0,
+          transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+          transition: 'transform 0.15s ease',
+          color: 'rgba(0,0,0,0.4)',
+        }}
+      >
+        <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.04px' }}>
+        {label}
+      </span>
+      <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.38)' }}>{count}</span>
       {showPlus && (
         <button
-          className="flex items-center justify-center flex-shrink-0"
-          style={{ width: 28, height: 28, borderRadius: 100, background: 'transparent', border: 'none', cursor: 'pointer' }}
+          className="flex items-center justify-center"
+          style={{ width: 20, height: 20, borderRadius: 4, background: 'transparent', border: 'none', cursor: 'pointer', marginLeft: 2 }}
           onClick={e => { e.stopPropagation(); onOpenForm?.(e.currentTarget.getBoundingClientRect()) }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
+          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.06)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
         >
-          <Icon name="add" size={16} style={{ color: 'rgba(0,0,0,0.61)' }} />
+          <Icon name="add" size={12} style={{ color: 'rgba(0,0,0,0.5)' }} />
         </button>
       )}
     </div>
@@ -1415,14 +1386,6 @@ function TasksContent({
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const toggle = (key: string) => setCollapsed(prev => ({ ...prev, [key]: !prev[key] }))
 
-  const sections = [
-    overdue.length   > 0 && 'overdue',
-    today.length     > 0 && 'today',
-    upcoming.length  > 0 && 'upcoming',
-    completed.length > 0 && 'completed',
-  ].filter(Boolean) as string[]
-  const firstSection = sections[0]
-
   return (
     <>
       <div className="flex flex-col flex-1 overflow-y-auto">
@@ -1430,7 +1393,6 @@ function TasksContent({
         {overdue.length > 0 && (
           <>
             <SectionHeader label="Overdue" count={overdue.length}
-              isFirst={firstSection === 'overdue'}
               collapsed={collapsed['overdue']} onToggle={() => toggle('overdue')}
             />
             {!collapsed['overdue'] && overdue.map(t =>
@@ -1443,7 +1405,6 @@ function TasksContent({
         {today.length > 0 && (
           <>
             <SectionHeader label="Today" count={today.length} showPlus
-              isFirst={firstSection === 'today'}
               collapsed={collapsed['today']} onToggle={() => toggle('today')}
               onOpenForm={rect => setFormState({ group: 'today', rect })}
             />
@@ -1457,7 +1418,6 @@ function TasksContent({
         {upcoming.length > 0 && (
           <>
             <SectionHeader label="Upcoming" count={upcoming.length} showPlus
-              isFirst={firstSection === 'upcoming'}
               collapsed={collapsed['upcoming']} onToggle={() => toggle('upcoming')}
               onOpenForm={rect => setFormState({ group: 'upcoming', rect })}
             />
@@ -1471,7 +1431,6 @@ function TasksContent({
         {completed.length > 0 && (
           <>
             <SectionHeader label="Completed" count={completed.length} showPlus
-              isFirst={firstSection === 'completed'}
               collapsed={collapsed['completed']} onToggle={() => toggle('completed')}
               onOpenForm={rect => setFormState({ group: 'completed', rect })}
             />
