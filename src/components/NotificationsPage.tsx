@@ -188,7 +188,7 @@ export function NotificationsPage() {
       {/* Left panel */}
       <div
         className="flex flex-col flex-shrink-0 overflow-hidden"
-        style={{ width: 300, borderRight: '1px solid rgba(0,0,0,0.08)' }}
+        style={{ width: 420, borderRight: '1px solid rgba(0,0,0,0.08)' }}
       >
         {/* Tabs */}
         <div
