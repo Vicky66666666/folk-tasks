@@ -82,9 +82,11 @@ function Divider() {
 export function Sidebar({
   activePage,
   onTasksClick,
+  onGroupClick,
 }: {
   activePage?: 'contact' | 'tasks'
   onTasksClick?: () => void
+  onGroupClick?: () => void
 }) {
   return (
     <div
@@ -137,12 +139,12 @@ export function Sidebar({
       {/* Groups */}
       <SectionLabel label="Shared to everyone" />
       <div className="flex flex-col" style={{ gap: 2, padding: '0 8px 4px' }}>
-        <NavItem emoji="🟡" label="Beta 2024: Attendees" />
-        <NavItem emoji="🔎" label="Companies" active />
+        <div onClick={onGroupClick}><NavItem emoji="🟡" label="Beta 2024: Attendees" /></div>
+        <div onClick={onGroupClick}><NavItem emoji="🔎" label="Companies" active /></div>
         <div className="flex flex-col" style={{ gap: 2, paddingLeft: 16 }}>
-          <NavItem emoji="🇩🇪" label="Hong Kong" />
-          <NavItem emoji="🇬🇧" label="London" />
-          <NavItem emoji="📬" label="2024 followups" />
+          <div onClick={onGroupClick}><NavItem emoji="🇩🇪" label="Hong Kong" /></div>
+          <div onClick={onGroupClick}><NavItem emoji="🇬🇧" label="London" /></div>
+          <div onClick={onGroupClick}><NavItem emoji="📬" label="2024 followups" /></div>
         </div>
         <div style={{ paddingLeft: 8, paddingTop: 2, paddingBottom: 2 }}>
           <span style={{ fontSize: 13, color: 'rgba(0,0,0,0.61)', cursor: 'pointer', letterSpacing: '-0.04px' }}>
@@ -155,16 +157,16 @@ export function Sidebar({
 
       <SectionLabel label="Shared" />
       <div className="flex flex-col" style={{ gap: 2, padding: '0 8px 4px' }}>
-        <NavItem emoji="🟡" label="Suggestions: Berlin Dinner" />
+        <div onClick={onGroupClick}><NavItem emoji="🟡" label="Suggestions: Berlin Dinner" /></div>
       </div>
 
       <SectionLabel label="Private" />
       <div className="flex flex-col" style={{ gap: 2, padding: '0 8px 4px' }}>
-        <NavItem emoji="🇩🇪" label="Zurich Dinner, 27.02.25" />
-        <NavItem emoji="🇸🇦" label="Riyadh-Dinner 27.01.2025" />
-        <NavItem emoji="🏔️" label="Summit-Speakers (GP)" />
-        <NavItem emoji="🇩🇪" label="Suggestions: Frankfurt" />
-        <NavItem emoji="💰" label="All VCs" />
+        <div onClick={onGroupClick}><NavItem emoji="🇩🇪" label="Zurich Dinner, 27.02.25" /></div>
+        <div onClick={onGroupClick}><NavItem emoji="🇸🇦" label="Riyadh-Dinner 27.01.2025" /></div>
+        <div onClick={onGroupClick}><NavItem emoji="🏔️" label="Summit-Speakers (GP)" /></div>
+        <div onClick={onGroupClick}><NavItem emoji="🇩🇪" label="Suggestions: Frankfurt" /></div>
+        <div onClick={onGroupClick}><NavItem emoji="💰" label="All VCs" /></div>
         <div style={{ paddingLeft: 8, paddingTop: 2, paddingBottom: 2 }}>
           <span style={{ fontSize: 13, color: 'rgba(0,0,0,0.61)', cursor: 'pointer', letterSpacing: '-0.04px' }}>
             ··· See all

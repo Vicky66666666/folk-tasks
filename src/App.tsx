@@ -76,6 +76,7 @@ function App() {
       <Sidebar
         activePage={view}
         onTasksClick={() => setView(v => v === 'tasks' ? 'contact' : 'tasks')}
+        onGroupClick={() => setView('contact')}
       />
       <div className="flex flex-col flex-1 overflow-hidden">
         {view === 'contact' ? (
