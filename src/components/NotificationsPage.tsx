@@ -202,7 +202,7 @@ export function NotificationsPage() {
             paddingLeft: 16, paddingRight: 8,
             borderBottom: '1px solid rgba(0,0,0,0.08)',
             gap: 0,
-            height: 40,
+            height: 48,
           }}
         >
           <div className="flex items-center flex-1" style={{ gap: 0, height: '100%' }}>
