@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { Sidebar } from './components/Sidebar'
 import { ContactPanel } from './components/ContactPanel'
 import { TasksPanel } from './components/TasksPanel'
+import { TasksPage } from './components/TasksPage'
 import { Icon } from './folk'
 
 function TopBar() {
@@ -64,18 +66,29 @@ function TopBar() {
 }
 
 function App() {
+  const [view, setView] = useState<'contact' | 'tasks'>('contact')
+
   return (
     <div
       className="flex h-screen w-screen overflow-hidden"
       style={{ fontFamily: 'Inter, sans-serif' }}
     >
-      <Sidebar />
+      <Sidebar
+        activePage={view}
+        onTasksClick={() => setView(v => v === 'tasks' ? 'contact' : 'tasks')}
+      />
       <div className="flex flex-col flex-1 overflow-hidden">
-        <TopBar />
-        <div className="flex flex-1 overflow-hidden">
-          <ContactPanel />
-          <TasksPanel />
-        </div>
+        {view === 'contact' ? (
+          <>
+            <TopBar />
+            <div className="flex flex-1 overflow-hidden">
+              <ContactPanel />
+              <TasksPanel />
+            </div>
+          </>
+        ) : (
+          <TasksPage />
+        )}
       </div>
     </div>
   )

@@ -79,7 +79,13 @@ function Divider() {
   return <div style={{ height: 1, background: 'rgba(0,0,0,0.08)', margin: '4px 0' }} />
 }
 
-export function Sidebar() {
+export function Sidebar({
+  activePage,
+  onTasksClick,
+}: {
+  activePage?: 'contact' | 'tasks'
+  onTasksClick?: () => void
+}) {
   return (
     <div
       className="flex flex-col h-full overflow-y-auto"
@@ -119,7 +125,9 @@ export function Sidebar() {
         <NavItem icon="search" label="Search" />
         <NavItem icon="notifications" label="Notifications" count={6} />
         <NavItem icon="mail" label="Messages" />
-        <NavItem icon="check_box" label="Tasks" count={6} />
+        <div onClick={onTasksClick} style={{ cursor: 'pointer' }}>
+          <NavItem icon="check_box" label="Tasks" count={6} active={activePage === 'tasks'} />
+        </div>
         <NavItem icon="bar_chart" label="Dashboards" />
         <NavItem icon="smart_toy" label="folk assistants" />
       </div>
