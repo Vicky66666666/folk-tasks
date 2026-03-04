@@ -128,18 +128,20 @@ function BellIcon() {
 }
 
 function NotifItem({ item }: { item: Notification }) {
+  const hasSubtitle = !!item.subtitle
   return (
     <div
-      className="flex items-start"
+      className="flex items-center"
       style={{
         gap: 10,
         padding: '6px 16px',
         cursor: 'pointer',
+        alignItems: hasSubtitle ? 'flex-start' : 'center',
       }}
       onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.02)')}
       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
     >
-      <div style={{ marginTop: 1 }}>
+      <div style={hasSubtitle ? { marginTop: 3, flexShrink: 0 } : { flexShrink: 0 }}>
         {item.type === 'avatar' && item.avatar ? <Avatar avatar={item.avatar} /> : <BellIcon />}
       </div>
       <div className="flex flex-col flex-1 min-w-0" style={{ gap: 1 }}>
@@ -160,7 +162,10 @@ function NotifItem({ item }: { item: Notification }) {
           </span>
         )}
       </div>
-      <div className="flex items-center flex-shrink-0" style={{ gap: 6, marginTop: 2 }}>
+      <div
+        className="flex items-center flex-shrink-0"
+        style={{ gap: 6, alignSelf: hasSubtitle ? 'flex-start' : 'center', marginTop: hasSubtitle ? 3 : 0 }}
+      >
         <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.4)', whiteSpace: 'nowrap' }}>{item.time}</span>
         {item.unread && (
           <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#3b82f6', flexShrink: 0 }} />
