@@ -1312,7 +1312,7 @@ function SectionHeader({
     <div
       className="flex items-center cursor-pointer"
       style={{
-        paddingLeft: 24,
+        paddingLeft: 20,
         paddingRight: 8,
         height: 32,
         gap: 6,
