@@ -4,7 +4,7 @@ import { Icon } from '../folk'
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ItemType = 'mention' | 'assignment' | 'followup' | 'reminder' | 'group-invite'
-type Tab = 'inbox' | 'upcoming' | 'done'
+type Tab = 'inbox' | 'upcoming'
 type AgeGroup = 'today' | 'week' | 'older'
 type UpcomingGroup = 'this-week' | 'next-week' | 'later'
 
@@ -110,7 +110,6 @@ const ITEMS: InboxItem[] = [
 const TABS: { key: Tab; label: string }[] = [
   { key: 'inbox',    label: 'Inbox' },
   { key: 'upcoming', label: 'Upcoming' },
-  { key: 'done',     label: 'Done' },
 ]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -195,7 +194,7 @@ function HoverActions({ type }: { type: ItemType }) {
 
 // ─── Item row ─────────────────────────────────────────────────────────────────
 
-function InboxItemRow({ item, done }: { item: InboxItem; done?: boolean }) {
+function InboxItemRow({ item }: { item: InboxItem }) {
   const [hovered, setHovered] = useState(false)
   return (
     <div
@@ -210,10 +209,9 @@ function InboxItemRow({ item, done }: { item: InboxItem; done?: boolean }) {
       <ItemIcon item={item} />
       <span style={{
         flex: 1, minWidth: 0, fontSize: 13,
-        color: done ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.87)',
+        color: 'rgba(0,0,0,0.87)',
         letterSpacing: '-0.04px', lineHeight: '18px',
         fontWeight: 400,
-        textDecoration: 'none',
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>
         {item.title}
@@ -260,11 +258,9 @@ export function NotificationsPage() {
       ? (['today', 'week', 'older'] as AgeGroup[])
           .map(key => ({ key, label: AGE_LABELS[key], items: tabItems.filter(i => getAgeGroup(i.daysAgo) === key) }))
           .filter(g => g.items.length > 0)
-      : activeTab === 'upcoming'
-      ? (['this-week', 'next-week', 'later'] as UpcomingGroup[])
+      : (['this-week', 'next-week', 'later'] as UpcomingGroup[])
           .map(key => ({ key, label: UPCOMING_LABELS[key], items: tabItems.filter(i => getUpcomingGroup(i.daysAgo) === key) }))
           .filter(g => g.items.length > 0)
-      : [{ key: 'done', label: '', items: tabItems }]
 
   const inboxCount = ITEMS.filter(i => i.status === 'inbox').length
 
@@ -277,7 +273,7 @@ export function NotificationsPage() {
         <div className="flex items-center flex-shrink-0" style={{ paddingLeft: 16, paddingRight: 8, borderBottom: '1px solid rgba(0,0,0,0.08)', height: 48 }}>
           <div className="flex items-center flex-1" style={{ height: '100%', gap: 0 }}>
             {TABS.map(tab => {
-              const count = tab.key === 'inbox' ? inboxCount : ITEMS.filter(i => i.status === tab.key).length
+              const count = tab.key === 'inbox' ? inboxCount : ITEMS.filter(i => i.status === tab.key && i.type === 'reminder').length
               return (
                 <button
                   key={tab.key}
@@ -325,11 +321,9 @@ export function NotificationsPage() {
         <div className="flex flex-col overflow-y-auto" style={{ paddingBottom: 12 }}>
           {grouped.map(group => (
             <div key={group.key}>
-              {(activeTab === 'inbox' || activeTab === 'upcoming') && group.label && (
-                <GroupLabel label={group.label} />
-              )}
+              {group.label && <GroupLabel label={group.label} />}
               {group.items.map(item => (
-                <InboxItemRow key={item.id} item={item} done={activeTab === 'done'} />
+                <InboxItemRow key={item.id} item={item} />
               ))}
             </div>
           ))}
