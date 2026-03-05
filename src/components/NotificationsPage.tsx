@@ -200,7 +200,7 @@ function InboxItemRow({ item, done }: { item: InboxItem; done?: boolean }) {
         color: done ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.87)',
         letterSpacing: '-0.04px', lineHeight: '18px',
         fontWeight: 400,
-        textDecoration: done ? 'line-through' : 'none',
+        textDecoration: 'none',
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>
         {item.title}
