@@ -127,10 +127,14 @@ const AGE_LABELS: Record<AgeGroup, string> = {
   older: 'Older',
 }
 
+// ─── Shared color ─────────────────────────────────────────────────────────────
+
+const MUTED = 'rgba(0,0,0,0.35)'
+
 // ─── Item icon ────────────────────────────────────────────────────────────────
 
 function ItemIcon({ item }: { item: InboxItem }) {
-  const dim = 'rgba(0,0,0,0.35)'
+  const dim = MUTED
   if (item.actor && (item.type === 'mention' || item.type === 'assignment' || item.type === 'group-invite')) {
     return (
       <div style={{
@@ -205,7 +209,7 @@ function InboxItemRow({ item, done }: { item: InboxItem; done?: boolean }) {
         display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
         opacity: hovered ? 0 : 1, transition: 'opacity 0.1s',
       }}>
-        <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.3)', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 12, color: MUTED, whiteSpace: 'nowrap' }}>
           {item.time}
         </span>
       </div>
@@ -219,7 +223,7 @@ function InboxItemRow({ item, done }: { item: InboxItem; done?: boolean }) {
 function GroupLabel({ label, count }: { label: string; count: number }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px 4px' }}>
-      <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(0,0,0,0.35)', letterSpacing: '-0.04px' }}>
+      <span style={{ fontSize: 12, fontWeight: 500, color: MUTED, letterSpacing: '-0.04px' }}>
         {label}
       </span>
       <span style={{ fontSize: 11, color: 'rgba(0,0,0,0.25)' }}>{count}</span>
