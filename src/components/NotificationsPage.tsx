@@ -81,13 +81,13 @@ const ITEMS: InboxItem[] = [
     title: 'Tom mentioned you on Kevin Park',
   },
 
-  // ── Upcoming (reminders + folk follow-up suggestions only) ────────────────
+  // ── Upcoming (reminders only) ──────────────────────────────────────────────
   {
     id: 10, type: 'reminder', status: 'upcoming', daysAgo: -1, time: 'Mar 10',
     title: 'Call with Benjamin',
   },
   {
-    id: 11, type: 'followup', status: 'upcoming', daysAgo: -1, time: 'Mar 8', isFolk: true,
+    id: 11, type: 'reminder', status: 'upcoming', daysAgo: -1, time: 'Mar 15',
     title: 'Follow up with Kevin Park',
   },
   {
@@ -234,7 +234,7 @@ export function NotificationsPage() {
 
   const tabItems = ITEMS.filter(i => {
     if (i.status !== activeTab) return false
-    if (activeTab === 'upcoming') return i.type === 'reminder' || i.type === 'followup'
+    if (activeTab === 'upcoming') return i.type === 'reminder'
     return true
   })
 
