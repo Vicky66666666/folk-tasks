@@ -65,7 +65,7 @@ function TopBar() {
   )
 }
 
-type View = 'contact' | 'tasks' | 'notifications'
+type View = 'contact' | 'notifications'
 
 function App() {
   const [view, setView] = useState<View>('contact')
@@ -77,7 +77,6 @@ function App() {
     >
       <Sidebar
         activePage={view}
-        onTasksClick={() => setView(v => v === 'notifications' ? 'contact' : 'notifications')}
         onNotificationsClick={() => setView(v => v === 'notifications' ? 'contact' : 'notifications')}
         onGroupClick={() => setView('contact')}
       />

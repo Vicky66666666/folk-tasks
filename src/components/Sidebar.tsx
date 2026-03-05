@@ -81,12 +81,10 @@ function Divider() {
 
 export function Sidebar({
   activePage,
-  onTasksClick,
   onNotificationsClick,
   onGroupClick,
 }: {
-  activePage?: 'contact' | 'tasks' | 'notifications'
-  onTasksClick?: () => void
+  activePage?: 'contact' | 'notifications'
   onNotificationsClick?: () => void
   onGroupClick?: () => void
 }) {
