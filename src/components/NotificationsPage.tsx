@@ -220,13 +220,12 @@ function InboxItemRow({ item, done }: { item: InboxItem; done?: boolean }) {
 
 // ─── Group label ──────────────────────────────────────────────────────────────
 
-function GroupLabel({ label, count }: { label: string; count: number }) {
+function GroupLabel({ label }: { label: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px 4px' }}>
+    <div style={{ display: 'flex', alignItems: 'center', padding: '10px 16px 4px' }}>
       <span style={{ fontSize: 12, fontWeight: 500, color: MUTED, letterSpacing: '-0.04px' }}>
         {label}
       </span>
-      <span style={{ fontSize: 11, color: 'rgba(0,0,0,0.25)' }}>{count}</span>
     </div>
   )
 }
@@ -310,7 +309,7 @@ export function NotificationsPage() {
             <div key={group.key}>
               {/* Only show group labels in inbox tab */}
               {activeTab === 'inbox' && (
-                <GroupLabel label={AGE_LABELS[group.key]} count={group.items.length} />
+                <GroupLabel label={AGE_LABELS[group.key]} />
               )}
               {group.items.map(item => (
                 <InboxItemRow key={item.id} item={item} done={activeTab === 'done'} />
