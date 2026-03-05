@@ -137,7 +137,7 @@ export function TasksPanel() {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column',
-      width: 320, flexShrink: 0,
+      flex: 1, minWidth: 0,
       borderLeft: '1px solid rgba(0,0,0,0.08)',
       background: 'white', overflow: 'hidden',
     }}>
