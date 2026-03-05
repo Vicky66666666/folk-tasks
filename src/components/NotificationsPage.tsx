@@ -95,16 +95,6 @@ const ITEMS: InboxItem[] = [
   { id: 21, type: 'reminder', status: 'upcoming', daysAgo: -35, time: 'Apr 9',  title: 'Update CRM with Hong Kong contacts' },
   { id: 22, type: 'reminder', status: 'upcoming', daysAgo: -42, time: 'Apr 16', title: 'Follow up with Marc Andreessen' },
 
-  // ── Done ───────────────────────────────────────────────────────────────────
-  {
-    id: 13, type: 'mention', status: 'done', daysAgo: 18, time: 'Feb 3',
-    actor: { name: 'Leslie Alexander', initials: 'LA', color: '#7c6fcd', image: 'https://i.pravatar.cc/150?img=47' },
-    title: 'Leslie mentioned you on Kate Williams',
-  },
-  {
-    id: 14, type: 'reminder', status: 'done', daysAgo: 20, time: 'Feb 1',
-    title: 'Call with Andrew',
-  },
 ]
 
 const TABS: { key: Tab; label: string }[] = [
