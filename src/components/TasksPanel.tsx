@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Icon } from '../folk'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -16,7 +16,7 @@ interface Task {
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
-const TASKS: Task[] = [
+const INITIAL_TASKS: Task[] = [
   { id: 1, title: 'Follow up with Lisa Anderson',    dueDate: 'Mar 28', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', overdue: true },
   { id: 2, title: 'Send NDA to Acme Corp',           dueDate: 'Apr 1',  assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', overdue: true },
   { id: 3, title: 'Review partnership proposal',     dueDate: 'Apr 4',  assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo' },
@@ -32,15 +32,9 @@ const TASKS: Task[] = [
 
 type Tab = 'interactions' | 'notes' | 'tasks'
 
-const TABS: { key: Tab; label: string; count: number }[] = [
-  { key: 'interactions', label: 'Interactions', count: 8 },
-  { key: 'notes',        label: 'Notes',        count: 1 },
-  { key: 'tasks',        label: 'Tasks',        count: 5 },
-]
-
 // ─── Task row ────────────────────────────────────────────────────────────────
 
-function TaskRow({ task }: { task: Task }) {
+function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: number) => void }) {
   const [hovered, setHovered] = useState(false)
   const done = task.status === 'done'
 
@@ -55,10 +49,13 @@ function TaskRow({ task }: { task: Task }) {
       onMouseLeave={() => setHovered(false)}
     >
       {/* Check icon */}
-      <div style={{ flexShrink: 0 }}>
+      <div
+        style={{ flexShrink: 0, cursor: 'pointer' }}
+        onClick={e => { e.stopPropagation(); onToggle(task.id) }}
+      >
         {done
           ? <Icon name="check_circle" size={16} style={{ color: 'rgba(0,0,0,0.2)' }} />
-          : <Icon name="radio_button_unchecked" size={16} style={{ color: hovered ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.2)' }} />
+          : <Icon name="radio_button_unchecked" size={16} style={{ color: hovered ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.2)' }} />
         }
       </div>
 
@@ -83,9 +80,39 @@ function TaskRow({ task }: { task: Task }) {
       {/* Avatar */}
       <img
         src={task.assigneeAvatar}
+        style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0, opacity: done ? 0.35 : 1 }}
+      />
+    </div>
+  )
+}
+
+// ─── New task row ─────────────────────────────────────────────────────────────
+
+function NewTaskRow({ onSubmit, onCancel }: { onSubmit: (title: string) => void; onCancel: () => void }) {
+  const [value, setValue] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { inputRef.current?.focus() }, [])
+
+  function handleKey(e: React.KeyboardEvent) {
+    if (e.key === 'Enter' && value.trim()) { onSubmit(value.trim()); return }
+    if (e.key === 'Escape') onCancel()
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 16px' }}>
+      <Icon name="radio_button_unchecked" size={16} style={{ color: 'rgba(0,0,0,0.2)', flexShrink: 0 }} />
+      <input
+        ref={inputRef}
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        onKeyDown={handleKey}
+        onBlur={() => { if (!value.trim()) onCancel() }}
+        placeholder="Task name"
         style={{
-          width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
-          opacity: done ? 0.35 : 1,
+          flex: 1, border: 'none', outline: 'none', background: 'transparent',
+          fontSize: 13, letterSpacing: '-0.04px', color: 'rgba(0,0,0,0.87)',
+          fontFamily: 'inherit',
         }}
       />
     </div>
@@ -94,20 +121,18 @@ function TaskRow({ task }: { task: Task }) {
 
 // ─── Section header ──────────────────────────────────────────────────────────
 
-function SectionHeader({ label, count, showNewTask }: { label: string; count: number; showNewTask?: boolean }) {
+function SectionHeader({ label, count, onNewTask }: { label: string; count: number; onNewTask?: () => void }) {
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center',
-      padding: '12px 16px 6px',
-    }}>
+    <div style={{ display: 'flex', alignItems: 'center', padding: '12px 16px 6px' }}>
       <span style={{ fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.3px' }}>
         {label}
       </span>
       <span style={{ fontSize: 13, color: 'rgba(0,0,0,0.3)', marginLeft: 6 }}>
         {count}
       </span>
-      {showNewTask && (
+      {onNewTask && (
         <button
+          onClick={onNewTask}
           style={{
             marginLeft: 'auto',
             height: 24, paddingLeft: 12, paddingRight: 12,
@@ -128,11 +153,35 @@ function SectionHeader({ label, count, showNewTask }: { label: string; count: nu
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
-export function TasksPanel() {
-  const [activeTab, setActiveTab] = useState<Tab>('tasks')
+let nextId = 100
 
-  const overdue   = TASKS.filter(t => t.status === 'todo')
-  const completed = TASKS.filter(t => t.status === 'done')
+export function TasksPanel() {
+  const [activeTab, setActiveTab]     = useState<Tab>('tasks')
+  const [tasks, setTasks]             = useState<Task[]>(INITIAL_TASKS)
+  const [addingTask, setAddingTask]   = useState(false)
+
+  const todo      = tasks.filter(t => t.status === 'todo')
+  const completed = tasks.filter(t => t.status === 'done')
+
+  function toggle(id: number) {
+    setTasks(prev => prev.map(t =>
+      t.id === id ? { ...t, status: t.status === 'todo' ? 'done' : 'todo', overdue: false } : t
+    ))
+  }
+
+  function createTask(title: string) {
+    setTasks(prev => [{
+      id: nextId++, title, dueDate: '', assigneeAvatar: 'https://i.pravatar.cc/150?img=12',
+      status: 'todo',
+    }, ...prev])
+    setAddingTask(false)
+  }
+
+  const TABS: { key: Tab; label: string; count: number }[] = [
+    { key: 'interactions', label: 'Interactions', count: 8 },
+    { key: 'notes',        label: 'Notes',        count: 1 },
+    { key: 'tasks',        label: 'Tasks',        count: todo.length },
+  ]
 
   return (
     <div style={{
@@ -177,11 +226,14 @@ export function TasksPanel() {
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 16 }}>
         {activeTab === 'tasks' && (
           <>
-            <SectionHeader label="Overdue" count={overdue.length} showNewTask />
-            {overdue.map(task => <TaskRow key={task.id} task={task} />)}
+            <SectionHeader label="Overdue" count={todo.length} onNewTask={() => setAddingTask(true)} />
+            {addingTask && (
+              <NewTaskRow onSubmit={createTask} onCancel={() => setAddingTask(false)} />
+            )}
+            {todo.map(task => <TaskRow key={task.id} task={task} onToggle={toggle} />)}
 
             <SectionHeader label="Completed" count={completed.length} />
-            {completed.map(task => <TaskRow key={task.id} task={task} />)}
+            {completed.map(task => <TaskRow key={task.id} task={task} onToggle={toggle} />)}
           </>
         )}
       </div>
