@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
 import { Icon } from '../folk'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -27,6 +28,19 @@ const INITIAL_TASKS: Task[] = [
   { id: 8, title: 'Update CRM with Berlin contacts', dueDate: 'Mar 28', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'done' },
   { id: 9, title: 'Book flights for SF summit',      dueDate: 'Mar 25', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'done' },
 ]
+
+const ASSIGNEES = [
+  { avatar: 'https://i.pravatar.cc/150?img=12', name: 'Alex' },
+  { avatar: 'https://i.pravatar.cc/150?img=44', name: 'Jordan' },
+]
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function formatDate(raw: string): string {
+  if (!raw) return ''
+  const d = new Date(raw + 'T00:00:00')
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
 
 // ─── Tab bar ─────────────────────────────────────────────────────────────────
 
@@ -86,36 +100,160 @@ function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: number) => voi
   )
 }
 
-// ─── New task row ─────────────────────────────────────────────────────────────
+// ─── Pill style ──────────────────────────────────────────────────────────────
 
-function NewTaskRow({ onSubmit, onCancel }: { onSubmit: (title: string) => void; onCancel: () => void }) {
-  const [value, setValue] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
+const pillStyle: CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: 6,
+  height: 28, paddingLeft: 10, paddingRight: 10,
+  background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)',
+  borderRadius: 100, cursor: 'pointer',
+  fontSize: 12, fontWeight: 400, letterSpacing: '-0.04px',
+  color: 'rgba(0,0,0,0.61)', fontFamily: 'inherit',
+}
 
-  useEffect(() => { inputRef.current?.focus() }, [])
+// ─── New task modal ───────────────────────────────────────────────────────────
 
-  function handleKey(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && value.trim()) { onSubmit(value.trim()); return }
-    if (e.key === 'Escape') onCancel()
+function NewTaskModal({ onClose, onCreate }: {
+  onClose: () => void
+  onCreate: (task: Omit<Task, 'id'>) => void
+}) {
+  const [title, setTitle]           = useState('')
+  const [dueDateRaw, setDueDateRaw] = useState('')
+  const [assignee, setAssignee]     = useState(ASSIGNEES[0])
+  const titleRef                    = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { titleRef.current?.focus() }, [])
+
+  const formattedDate = formatDate(dueDateRaw)
+
+  const handleCreate = () => {
+    if (!title.trim()) return
+    onCreate({
+      title: title.trim(),
+      dueDate: formattedDate,
+      assigneeAvatar: assignee.avatar,
+      status: 'todo',
+    })
+    onClose()
   }
 
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 16px' }}>
-      <Icon name="radio_button_unchecked" size={16} style={{ color: 'rgba(0,0,0,0.2)', flexShrink: 0 }} />
-      <input
-        ref={inputRef}
-        value={value}
-        onChange={e => setValue(e.target.value)}
-        onKeyDown={handleKey}
-        onBlur={() => { if (!value.trim()) onCancel() }}
-        placeholder="Task name"
-        style={{
-          flex: 1, border: 'none', outline: 'none', background: 'transparent',
-          fontSize: 13, letterSpacing: '-0.04px', color: 'rgba(0,0,0,0.87)',
-          fontFamily: 'inherit',
-        }}
+  return createPortal(
+    <>
+      {/* Backdrop */}
+      <div
+        style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.32)' }}
+        onMouseDown={onClose}
       />
-    </div>
+
+      {/* Modal card */}
+      <div
+        style={{
+          position: 'fixed',
+          top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 1000, width: 576,
+          background: 'white',
+          border: '1px solid #e1e1e1',
+          overflow: 'hidden',
+          boxShadow: '0px 9px 24px 0px rgba(24,26,27,0.16), 0px 3px 6px 0px rgba(24,26,27,0.08), 0px 0px 1px 0px rgba(24,26,27,0.04)',
+        }}
+        onMouseDown={e => e.stopPropagation()}
+        onKeyDown={e => {
+          if (e.key === 'Escape') { e.stopPropagation(); onClose() }
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleCreate()
+        }}
+      >
+        {/* Body */}
+        <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 40 }}>
+
+          {/* Title input */}
+          <input
+            ref={titleRef}
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            placeholder="Task title"
+            style={{
+              border: 'none', outline: 'none', padding: 0, width: '100%',
+              fontFamily: 'inherit',
+              fontSize: 20, fontWeight: 500, lineHeight: '24px',
+              color: '#202020', background: 'transparent',
+            }}
+          />
+
+          {/* Attribute pills */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+
+            {/* Date pill — wraps a hidden native date input */}
+            <label style={{ ...pillStyle, position: 'relative' }}>
+              <Icon name="calendar_today" size={14} style={{ color: 'rgba(0,0,0,0.61)', flexShrink: 0 }} />
+              <span style={{ color: formattedDate ? 'rgba(0,0,0,0.87)' : 'rgba(0,0,0,0.45)' }}>
+                {formattedDate || 'Date'}
+              </span>
+              <input
+                type="date"
+                value={dueDateRaw}
+                onChange={e => setDueDateRaw(e.target.value)}
+                style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%' }}
+              />
+            </label>
+
+            {/* Assignee avatars */}
+            <div style={{ display: 'flex', gap: 4 }}>
+              {ASSIGNEES.map(a => (
+                <img
+                  key={a.avatar}
+                  src={a.avatar}
+                  title={a.name}
+                  onClick={() => setAssignee(a)}
+                  style={{
+                    width: 24, height: 24, borderRadius: '50%', cursor: 'pointer',
+                    opacity: assignee.avatar === a.avatar ? 1 : 0.3,
+                    outline: assignee.avatar === a.avatar ? '2px solid rgba(0,0,0,0.7)' : 'none',
+                    outlineOffset: 1,
+                    transition: 'opacity 0.1s',
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          borderTop: '1px solid #e1e1e1',
+          display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+          padding: '12px 16px', gap: 8,
+        }}>
+          <button
+            onClick={onClose}
+            style={{
+              height: 28, paddingLeft: 12, paddingRight: 12,
+              background: 'white', border: '1px solid rgba(0,0,0,0.12)',
+              borderRadius: 100, fontFamily: 'inherit',
+              fontSize: 13, fontWeight: 500, letterSpacing: '-0.04px',
+              color: 'rgba(0,0,0,0.61)', cursor: 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleCreate}
+            style={{
+              height: 28, paddingLeft: 12, paddingRight: 12,
+              background: title.trim() ? '#202020' : 'rgba(0,0,0,0.08)',
+              border: 'none', borderRadius: 100, fontFamily: 'inherit',
+              fontSize: 13, fontWeight: 500, letterSpacing: '-0.04px',
+              color: title.trim() ? 'white' : 'rgba(0,0,0,0.3)',
+              cursor: title.trim() ? 'pointer' : 'default',
+              transition: 'background 0.15s, color 0.15s',
+            }}
+          >
+            Create task
+          </button>
+        </div>
+      </div>
+    </>,
+    document.body
   )
 }
 
@@ -156,9 +294,9 @@ function SectionHeader({ label, count, onNewTask }: { label: string; count: numb
 let nextId = 100
 
 export function TasksPanel() {
-  const [activeTab, setActiveTab]     = useState<Tab>('tasks')
-  const [tasks, setTasks]             = useState<Task[]>(INITIAL_TASKS)
-  const [addingTask, setAddingTask]   = useState(false)
+  const [activeTab, setActiveTab]   = useState<Tab>('tasks')
+  const [tasks, setTasks]           = useState<Task[]>(INITIAL_TASKS)
+  const [addingTask, setAddingTask] = useState(false)
 
   const todo      = tasks.filter(t => t.status === 'todo')
   const completed = tasks.filter(t => t.status === 'done')
@@ -169,12 +307,8 @@ export function TasksPanel() {
     ))
   }
 
-  function createTask(title: string) {
-    setTasks(prev => [{
-      id: nextId++, title, dueDate: '', assigneeAvatar: 'https://i.pravatar.cc/150?img=12',
-      status: 'todo',
-    }, ...prev])
-    setAddingTask(false)
+  function createTask(task: Omit<Task, 'id'>) {
+    setTasks(prev => [{ id: nextId++, ...task }, ...prev])
   }
 
   const TABS: { key: Tab; label: string; count: number }[] = [
@@ -227,9 +361,6 @@ export function TasksPanel() {
         {activeTab === 'tasks' && (
           <>
             <SectionHeader label="Overdue" count={todo.length} onNewTask={() => setAddingTask(true)} />
-            {addingTask && (
-              <NewTaskRow onSubmit={createTask} onCancel={() => setAddingTask(false)} />
-            )}
             {todo.map(task => <TaskRow key={task.id} task={task} onToggle={toggle} />)}
 
             <SectionHeader label="Completed" count={completed.length} />
@@ -237,6 +368,11 @@ export function TasksPanel() {
           </>
         )}
       </div>
+
+      {/* New task modal (portal) */}
+      {addingTask && (
+        <NewTaskModal onClose={() => setAddingTask(false)} onCreate={createTask} />
+      )}
     </div>
   )
 }

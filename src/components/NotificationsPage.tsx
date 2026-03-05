@@ -109,7 +109,7 @@ const ITEMS: InboxItem[] = [
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'inbox',    label: 'Inbox' },
-  { key: 'upcoming', label: 'Upcoming' },
+  { key: 'upcoming', label: 'Upcoming task' },
 ]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
