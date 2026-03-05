@@ -105,10 +105,10 @@ function ItemIcon({ item }: { item: InboxItem }) {
   if (item.actor && (item.type === 'mention' || item.type === 'assignment' || item.type === 'group-invite')) {
     return (
       <div style={{
-        width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+        width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
         background: item.actor.color, overflow: 'hidden',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 9, fontWeight: 600, color: 'white',
+        fontSize: 8, fontWeight: 600, color: 'white',
       }}>
         {item.actor.image
           ? <img src={item.actor.image} alt={item.actor.initials} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -123,8 +123,8 @@ function ItemIcon({ item }: { item: InboxItem }) {
     return <Icon name="mail_outline" size={16} style={{ color: dim, flexShrink: 0 }} />
   }
 
-  // Reminder / task → checkbox icon
-  return <Icon name="check_box_outline_blank" size={16} style={{ color: dim, flexShrink: 0 }} />
+  // Reminder / task → checked checkbox icon
+  return <Icon name="check_box" size={16} style={{ color: dim, flexShrink: 0 }} />
 }
 
 // ─── Hover actions ────────────────────────────────────────────────────────────

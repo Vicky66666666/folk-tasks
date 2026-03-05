@@ -131,9 +131,6 @@ export function Sidebar({
           <NavItem icon="notifications" label="Notifications" count={6} active={activePage === 'notifications'} />
         </div>
         <NavItem icon="mail" label="Messages" />
-        <div onClick={onTasksClick} style={{ cursor: 'pointer' }}>
-          <NavItem icon="check_box" label="Tasks" count={6} active={activePage === 'tasks'} />
-        </div>
         <NavItem icon="bar_chart" label="Dashboards" />
         <NavItem icon="smart_toy" label="folk assistants" />
       </div>
