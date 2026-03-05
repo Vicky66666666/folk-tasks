@@ -81,15 +81,14 @@ const ITEMS: InboxItem[] = [
     title: 'Tom mentioned you on Kevin Park',
   },
 
-  // ── Upcoming ───────────────────────────────────────────────────────────────
+  // ── Upcoming (reminders + folk follow-up suggestions only) ────────────────
   {
     id: 10, type: 'reminder', status: 'upcoming', daysAgo: -1, time: 'Mar 10',
     title: 'Call with Benjamin',
   },
   {
-    id: 11, type: 'assignment', status: 'upcoming', daysAgo: -1, time: 'Mar 5',
-    actor: { name: 'Tom', initials: 'T', color: '#f59e0b' },
-    title: 'Tom assigned you to Kevin Park',
+    id: 11, type: 'followup', status: 'upcoming', daysAgo: -1, time: 'Mar 8', isFolk: true,
+    title: 'Follow up with Kevin Park',
   },
   {
     id: 12, type: 'reminder', status: 'upcoming', daysAgo: -1, time: 'Mar 20',
@@ -233,7 +232,11 @@ function GroupLabel({ label, count }: { label: string; count: number }) {
 export function NotificationsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('inbox')
 
-  const tabItems = ITEMS.filter(i => i.status === activeTab)
+  const tabItems = ITEMS.filter(i => {
+    if (i.status !== activeTab) return false
+    if (activeTab === 'upcoming') return i.type === 'reminder' || i.type === 'followup'
+    return true
+  })
 
   // For inbox: group by age
   const grouped: { key: AgeGroup; items: InboxItem[] }[] = activeTab === 'inbox'
