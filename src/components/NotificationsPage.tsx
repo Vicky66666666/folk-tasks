@@ -4,7 +4,7 @@ import { Icon } from '../folk'
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ItemType = 'mention' | 'assignment' | 'followup' | 'reminder' | 'group-invite'
-type Tab = 'all' | 'mentions' | 'assigned' | 'suggestions'
+type Tab = 'today' | 'week' | 'next' | 'completed'
 
 interface Actor {
   name: string
@@ -19,20 +19,19 @@ interface InboxItem {
   actor?: Actor
   isFolk?: boolean
   title: string
-  subtitle?: string
   time: string
   unread?: boolean
-  group: 'today' | 'week' | 'later'
+  group: 'today' | 'week' | 'next' | 'completed'
 }
 
 // ─── Actions per type ─────────────────────────────────────────────────────────
 
 const ACTIONS: Record<ItemType, Array<{ icon: string; label: string }>> = {
-  mention:        [{ icon: 'reply', label: 'Reply' },       { icon: 'check', label: 'Done' },    { icon: 'close', label: 'Dismiss' }],
-  assignment:     [{ icon: 'open_in_new', label: 'View' },  { icon: 'check', label: 'Done' },    { icon: 'close', label: 'Dismiss' }],
-  followup:       [{ icon: 'reply', label: 'Reply' },       { icon: 'snooze', label: 'Snooze' }, { icon: 'close', label: 'Dismiss' }],
-  reminder:       [{ icon: 'check', label: 'Done' },        { icon: 'snooze', label: 'Snooze' }, { icon: 'close', label: 'Dismiss' }],
-  'group-invite': [{ icon: 'check', label: 'Accept' },      { icon: 'close', label: 'Decline' }],
+  mention:        [{ icon: 'reply', label: 'Reply' },            { icon: 'check', label: 'Done' },    { icon: 'close', label: 'Dismiss' }],
+  assignment:     [{ icon: 'open_in_new', label: 'View' },       { icon: 'check', label: 'Done' },    { icon: 'close', label: 'Dismiss' }],
+  followup:       [{ icon: 'forward_to_inbox', label: 'Reply' }, { icon: 'snooze', label: 'Snooze' }, { icon: 'close', label: 'Dismiss' }],
+  reminder:       [{ icon: 'check', label: 'Done' },             { icon: 'snooze', label: 'Snooze' }, { icon: 'close', label: 'Dismiss' }],
+  'group-invite': [{ icon: 'check', label: 'Accept' },           { icon: 'close', label: 'Decline' }],
 }
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -42,16 +41,14 @@ const ITEMS: InboxItem[] = [
     id: 1, type: 'mention', group: 'today', unread: true, time: '11m',
     actor: { name: 'Leslie Alexander', initials: 'LA', color: '#7c6fcd', image: 'https://i.pravatar.cc/150?img=47' },
     title: 'Leslie mentioned you on Jane Cooper',
-    subtitle: '"Can you reach out to her this week?"',
   },
   {
-    id: 2, type: 'followup', group: 'today', unread: true, time: '—', isFolk: true,
+    id: 2, type: 'followup', group: 'today', unread: true, time: 'Now', isFolk: true,
     title: 'Follow up with Tim Berners-Lee',
-    subtitle: 'No reply in 3 days · Last contact Jan 28',
   },
   {
-    id: 3, type: 'reminder', group: 'today', unread: true, time: '1h',
-    title: 'Call John · Due today at 10 PM',
+    id: 3, type: 'reminder', group: 'today', unread: true, time: '10 PM',
+    title: 'Call John',
   },
   {
     id: 4, type: 'assignment', group: 'today', unread: true, time: '2h',
@@ -66,7 +63,6 @@ const ITEMS: InboxItem[] = [
   {
     id: 6, type: 'followup', group: 'week', time: 'Feb 15', isFolk: true,
     title: 'Follow up with Marc Andreessen',
-    subtitle: 'No reply in 5 days · Last contact Feb 15',
   },
   {
     id: 7, type: 'group-invite', group: 'week', time: 'Feb 12',
@@ -74,92 +70,81 @@ const ITEMS: InboxItem[] = [
     title: 'Sarah invited you to 🇩🇪 Berlin Dinner',
   },
   {
-    id: 8, type: 'reminder', group: 'later', time: 'Mar 10',
-    title: 'Call with Benjamin · Due Mar 10',
+    id: 8, type: 'reminder', group: 'next', time: 'Mar 10',
+    title: 'Call with Benjamin',
   },
   {
-    id: 9, type: 'assignment', group: 'later', time: 'Mar 5',
+    id: 9, type: 'assignment', group: 'next', time: 'Mar 5',
     actor: { name: 'Tom', initials: 'T', color: '#f59e0b' },
     title: 'Tom assigned you to Kevin Park',
+  },
+  {
+    id: 10, type: 'mention', group: 'completed', time: 'Feb 10',
+    actor: { name: 'Leslie Alexander', initials: 'LA', color: '#7c6fcd', image: 'https://i.pravatar.cc/150?img=47' },
+    title: 'Leslie mentioned you on Kate Williams',
+  },
+  {
+    id: 11, type: 'reminder', group: 'completed', time: 'Feb 8',
+    title: 'Call with Andrew',
   },
 ]
 
 const TABS: { key: Tab; label: string; count: number }[] = [
-  { key: 'all',         label: 'All',         count: 9 },
-  { key: 'mentions',    label: 'Mentions',    count: 2 },
-  { key: 'assigned',    label: 'Assigned',    count: 2 },
-  { key: 'suggestions', label: 'Suggestions', count: 2 },
+  { key: 'today',     label: 'Today',      count: 4 },
+  { key: 'week',      label: 'This week',  count: 3 },
+  { key: 'next',      label: 'Next',       count: 2 },
+  { key: 'completed', label: 'Completed',  count: 2 },
 ]
 
-const GROUPS: { key: InboxItem['group']; label: string }[] = [
-  { key: 'today', label: 'Today' },
-  { key: 'week',  label: 'This week' },
-  { key: 'later', label: 'Later' },
-]
+// ─── Item icon ────────────────────────────────────────────────────────────────
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+function ItemIcon({ item }: { item: InboxItem }) {
+  const dim = 'rgba(0,0,0,0.35)'
 
-function ActorIcon({ item }: { item: InboxItem }) {
-  // Folk-suggested item
-  if (item.isFolk) {
+  // Mention or assignment or group-invite → avatar
+  if (item.actor && (item.type === 'mention' || item.type === 'assignment' || item.type === 'group-invite')) {
     return (
       <div style={{
-        width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-        background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+        width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+        background: item.actor.color, overflow: 'hidden',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 9, fontWeight: 600, color: 'white',
       }}>
-        <Icon name="auto_awesome" size={13} style={{ color: 'white' }} />
+        {item.actor.image
+          ? <img src={item.actor.image} alt={item.actor.initials} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          : item.actor.initials
+        }
       </div>
     )
   }
-  // Reminder (no actor)
-  if (!item.actor) {
-    return (
-      <div style={{
-        width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-        background: 'rgba(0,0,0,0.06)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <Icon name="notifications" size={14} style={{ color: 'rgba(0,0,0,0.45)' }} />
-      </div>
-    )
+
+  // Follow-up suggestion → email icon
+  if (item.type === 'followup') {
+    return <Icon name="mail_outline" size={16} style={{ color: dim, flexShrink: 0 }} />
   }
-  // Human actor
-  return (
-    <div style={{
-      width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-      background: item.actor.color,
-      overflow: 'hidden',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: 10, fontWeight: 600, color: 'white',
-    }}>
-      {item.actor.image
-        ? <img src={item.actor.image} alt={item.actor.initials} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        : item.actor.initials
-      }
-    </div>
-  )
+
+  // Reminder / task → checkbox icon
+  return <Icon name="check_box_outline_blank" size={16} style={{ color: dim, flexShrink: 0 }} />
 }
+
+// ─── Hover actions ────────────────────────────────────────────────────────────
 
 function HoverActions({ type }: { type: ItemType }) {
   return (
     <div style={{
       position: 'absolute',
-      right: 12,
-      top: '50%',
-      transform: 'translateY(-50%)',
+      right: 12, top: '50%', transform: 'translateY(-50%)',
       background: 'white',
       boxShadow: '0 1px 6px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.07)',
       borderRadius: 6,
-      display: 'flex',
-      alignItems: 'center',
-      padding: 2,
-      zIndex: 2,
+      display: 'flex', alignItems: 'center',
+      padding: 2, zIndex: 2,
     }}>
       {ACTIONS[type].map(action => (
         <button
           key={action.label}
           title={action.label}
+          onClick={e => e.stopPropagation()}
           style={{
             width: 26, height: 26,
             border: 'none', background: 'none',
@@ -168,7 +153,6 @@ function HoverActions({ type }: { type: ItemType }) {
           }}
           onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.06)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-          onClick={e => e.stopPropagation()}
         >
           <Icon name={action.icon} size={14} style={{ color: 'rgba(0,0,0,0.55)' }} />
         </button>
@@ -177,99 +161,62 @@ function HoverActions({ type }: { type: ItemType }) {
   )
 }
 
-function InboxItemRow({ item }: { item: InboxItem }) {
+// ─── Item row ─────────────────────────────────────────────────────────────────
+
+function InboxItemRow({ item, completed }: { item: InboxItem; completed?: boolean }) {
   const [hovered, setHovered] = useState(false)
-  const hasSubtitle = !!item.subtitle
 
   return (
     <div
       style={{
         position: 'relative',
-        display: 'flex',
-        alignItems: hasSubtitle ? 'flex-start' : 'center',
-        gap: 10,
-        padding: '7px 16px',
+        display: 'flex', alignItems: 'center',
+        gap: 10, padding: '6px 16px',
         cursor: 'pointer',
         background: hovered ? 'rgba(0,0,0,0.02)' : 'transparent',
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Icon / avatar */}
-      <div style={hasSubtitle ? { marginTop: 3, flexShrink: 0 } : { flexShrink: 0 }}>
-        <ActorIcon item={item} />
-      </div>
+      <ItemIcon item={item} />
 
-      {/* Content */}
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{
-          fontSize: 13,
-          color: 'rgba(0,0,0,0.87)',
-          lineHeight: '18px',
-          letterSpacing: '-0.04px',
-          fontWeight: item.unread ? 500 : 400,
-        }}>
-          {item.title}
-        </span>
-        {item.subtitle && (
-          <span style={{
-            fontSize: 12,
-            color: 'rgba(0,0,0,0.45)',
-            lineHeight: '16px',
-            letterSpacing: '-0.04px',
-          }}>
-            {item.subtitle}
-          </span>
-        )}
-      </div>
+      <span style={{
+        flex: 1, minWidth: 0,
+        fontSize: 13,
+        color: completed ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.87)',
+        letterSpacing: '-0.04px',
+        lineHeight: '18px',
+        fontWeight: item.unread && !completed ? 500 : 400,
+        textDecoration: completed ? 'line-through' : 'none',
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>
+        {item.title}
+      </span>
 
-      {/* Time + unread dot — hidden on hover, action bar takes over */}
+      {/* Time + unread dot */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
-        alignSelf: hasSubtitle ? 'flex-start' : 'center',
-        marginTop: hasSubtitle ? 3 : 0,
-        opacity: hovered ? 0 : 1,
-        transition: 'opacity 0.1s',
+        opacity: hovered ? 0 : 1, transition: 'opacity 0.1s',
       }}>
-        {item.time !== '—' && (
-          <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.35)', whiteSpace: 'nowrap' }}>
-            {item.time}
-          </span>
-        )}
-        {item.unread && (
-          <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#3b82f6', flexShrink: 0 }} />
+        <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.3)', whiteSpace: 'nowrap' }}>
+          {item.time}
+        </span>
+        {item.unread && !completed && (
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#3b82f6' }} />
         )}
       </div>
 
-      {/* Floating action bar */}
       {hovered && <HoverActions type={item.type} />}
-    </div>
-  )
-}
-
-function GroupLabel({ label }: { label: string }) {
-  return (
-    <div style={{ padding: '8px 16px 2px' }}>
-      <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(0,0,0,0.35)', letterSpacing: '-0.04px' }}>
-        {label}
-      </span>
     </div>
   )
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-const TAB_FILTER: Record<Tab, (item: InboxItem) => boolean> = {
-  all:         () => true,
-  mentions:    item => item.type === 'mention',
-  assigned:    item => item.type === 'assignment',
-  suggestions: item => item.isFolk === true,
-}
-
 export function NotificationsPage() {
-  const [activeTab, setActiveTab] = useState<Tab>('all')
+  const [activeTab, setActiveTab] = useState<Tab>('today')
 
-  const filtered = ITEMS.filter(TAB_FILTER[activeTab])
+  const filtered = ITEMS.filter(item => item.group === activeTab)
 
   return (
     <div className="flex flex-1 overflow-hidden" style={{ background: 'white' }}>
@@ -281,11 +228,7 @@ export function NotificationsPage() {
         {/* Header */}
         <div
           className="flex items-center flex-shrink-0"
-          style={{
-            paddingLeft: 16, paddingRight: 8,
-            borderBottom: '1px solid rgba(0,0,0,0.08)',
-            height: 48,
-          }}
+          style={{ paddingLeft: 16, paddingRight: 8, borderBottom: '1px solid rgba(0,0,0,0.08)', height: 48 }}
         >
           <div className="flex items-center flex-1" style={{ height: '100%', gap: 0 }}>
             {TABS.map(tab => (
@@ -293,21 +236,16 @@ export function NotificationsPage() {
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 style={{
-                  height: '100%',
-                  paddingLeft: 8, paddingRight: 8,
-                  background: 'none', border: 'none',
+                  height: '100%', paddingLeft: 8, paddingRight: 8,
+                  background: 'none', border: 'none', cursor: 'pointer',
                   borderBottom: activeTab === tab.key ? '1.5px solid rgba(0,0,0,0.87)' : '1.5px solid transparent',
-                  cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  marginBottom: -1,
+                  display: 'flex', alignItems: 'center', gap: 4, marginBottom: -1,
                 }}
               >
                 <span style={{
-                  fontSize: 13,
+                  fontSize: 13, letterSpacing: '-0.04px', whiteSpace: 'nowrap',
                   color: activeTab === tab.key ? 'rgba(0,0,0,0.87)' : 'rgba(0,0,0,0.45)',
                   fontWeight: activeTab === tab.key ? 500 : 400,
-                  letterSpacing: '-0.04px',
-                  whiteSpace: 'nowrap',
                 }}>
                   {tab.label}
                 </span>
@@ -340,20 +278,13 @@ export function NotificationsPage() {
 
         {/* List */}
         <div className="flex flex-col overflow-y-auto" style={{ paddingTop: 4, paddingBottom: 12 }}>
-          {GROUPS.map(group => {
-            const items = filtered.filter(i => i.group === group.key)
-            if (!items.length) return null
-            return (
-              <div key={group.key}>
-                <GroupLabel label={group.label} />
-                {items.map(item => <InboxItemRow key={item.id} item={item} />)}
-              </div>
-            )
-          })}
+          {filtered.map(item => (
+            <InboxItemRow key={item.id} item={item} completed={activeTab === 'completed'} />
+          ))}
         </div>
       </div>
 
-      {/* Right panel – empty state */}
+      {/* Right panel */}
       <div className="flex flex-1 items-center justify-center">
         <span style={{ fontSize: 13, color: 'rgba(0,0,0,0.3)', letterSpacing: '-0.04px' }}>
           Select an item
