@@ -6,6 +6,7 @@ import { Icon } from '../folk'
 type ItemType = 'mention' | 'assignment' | 'followup' | 'reminder' | 'group-invite'
 type Tab = 'inbox' | 'upcoming' | 'done'
 type AgeGroup = 'today' | 'week' | 'older'
+type UpcomingGroup = 'this-week' | 'next-week' | 'later'
 
 interface Actor {
   name: string
@@ -20,8 +21,8 @@ interface InboxItem {
   actor?: Actor
   isFolk?: boolean
   title: string
-  time: string       // display label: "11m", "Yesterday", "Feb 18"…
-  daysAgo: number    // 0 = today, 1–6 = this week, 7+ = older, -1 = future (upcoming)
+  time: string       // display label: "11m", "Yesterday", "Mar 10"…
+  daysAgo: number    // 0 = today, 1–6 = this week, 7+ = older; negative = days from now (upcoming)
   status: Tab
 }
 
@@ -81,19 +82,18 @@ const ITEMS: InboxItem[] = [
     title: 'Tom mentioned you on Kevin Park',
   },
 
-  // ── Upcoming (reminders only) ──────────────────────────────────────────────
-  {
-    id: 10, type: 'reminder', status: 'upcoming', daysAgo: -1, time: 'Mar 10',
-    title: 'Call with Benjamin',
-  },
-  {
-    id: 11, type: 'reminder', status: 'upcoming', daysAgo: -1, time: 'Mar 15',
-    title: 'Follow up with Kevin Park',
-  },
-  {
-    id: 12, type: 'reminder', status: 'upcoming', daysAgo: -1, time: 'Mar 20',
-    title: 'Quarterly review with Sarah',
-  },
+  // ── Upcoming (reminders only) — daysAgo is negative: -N = N days from now ──
+  { id: 10, type: 'reminder', status: 'upcoming', daysAgo: -2,  time: 'Mar 7',  title: 'Call with Benjamin' },
+  { id: 11, type: 'reminder', status: 'upcoming', daysAgo: -3,  time: 'Mar 8',  title: 'Send NDA to Stripe' },
+  { id: 15, type: 'reminder', status: 'upcoming', daysAgo: -5,  time: 'Mar 10', title: 'Intro call with Y Combinator' },
+  { id: 16, type: 'reminder', status: 'upcoming', daysAgo: -8,  time: 'Mar 13', title: 'Follow up with Kevin Park' },
+  { id: 17, type: 'reminder', status: 'upcoming', daysAgo: -9,  time: 'Mar 14', title: 'Review partnership proposal with Acme' },
+  { id: 18, type: 'reminder', status: 'upcoming', daysAgo: -11, time: 'Mar 16', title: 'Prepare Q2 pipeline report' },
+  { id: 19, type: 'reminder', status: 'upcoming', daysAgo: -13, time: 'Mar 18', title: 'Sync with Berlin Dinner attendees' },
+  { id: 12, type: 'reminder', status: 'upcoming', daysAgo: -18, time: 'Mar 23', title: 'Quarterly review with Sarah' },
+  { id: 20, type: 'reminder', status: 'upcoming', daysAgo: -22, time: 'Mar 27', title: 'Call with Series B investors' },
+  { id: 21, type: 'reminder', status: 'upcoming', daysAgo: -35, time: 'Apr 9',  title: 'Update CRM with Hong Kong contacts' },
+  { id: 22, type: 'reminder', status: 'upcoming', daysAgo: -42, time: 'Apr 16', title: 'Follow up with Marc Andreessen' },
 
   // ── Done ───────────────────────────────────────────────────────────────────
   {
@@ -121,10 +121,23 @@ function getAgeGroup(daysAgo: number): AgeGroup {
   return 'older'
 }
 
+function getUpcomingGroup(daysAgo: number): UpcomingGroup {
+  const n = -daysAgo // positive days from now
+  if (n <= 6)  return 'this-week'
+  if (n <= 13) return 'next-week'
+  return 'later'
+}
+
 const AGE_LABELS: Record<AgeGroup, string> = {
   today: 'Today',
   week:  'This week',
   older: 'Older',
+}
+
+const UPCOMING_LABELS: Record<UpcomingGroup, string> = {
+  'this-week': 'This week',
+  'next-week': 'Next week',
+  'later':     'Later',
 }
 
 // ─── Shared color ─────────────────────────────────────────────────────────────
@@ -241,12 +254,17 @@ export function NotificationsPage() {
     return true
   })
 
-  // For inbox: group by age
-  const grouped: { key: AgeGroup; items: InboxItem[] }[] = activeTab === 'inbox'
-    ? (['today', 'week', 'older'] as AgeGroup[])
-        .map(key => ({ key, items: tabItems.filter(i => getAgeGroup(i.daysAgo) === key) }))
-        .filter(g => g.items.length > 0)
-    : [{ key: 'today' as AgeGroup, items: tabItems }] // flat list for upcoming/done
+  // Group items by tab
+  const grouped: { key: string; label: string; items: InboxItem[] }[] =
+    activeTab === 'inbox'
+      ? (['today', 'week', 'older'] as AgeGroup[])
+          .map(key => ({ key, label: AGE_LABELS[key], items: tabItems.filter(i => getAgeGroup(i.daysAgo) === key) }))
+          .filter(g => g.items.length > 0)
+      : activeTab === 'upcoming'
+      ? (['this-week', 'next-week', 'later'] as UpcomingGroup[])
+          .map(key => ({ key, label: UPCOMING_LABELS[key], items: tabItems.filter(i => getUpcomingGroup(i.daysAgo) === key) }))
+          .filter(g => g.items.length > 0)
+      : [{ key: 'done', label: '', items: tabItems }]
 
   const inboxCount = ITEMS.filter(i => i.status === 'inbox').length
 
@@ -307,9 +325,8 @@ export function NotificationsPage() {
         <div className="flex flex-col overflow-y-auto" style={{ paddingBottom: 12 }}>
           {grouped.map(group => (
             <div key={group.key}>
-              {/* Only show group labels in inbox tab */}
-              {activeTab === 'inbox' && (
-                <GroupLabel label={AGE_LABELS[group.key]} />
+              {(activeTab === 'inbox' || activeTab === 'upcoming') && group.label && (
+                <GroupLabel label={group.label} />
               )}
               {group.items.map(item => (
                 <InboxItemRow key={item.id} item={item} done={activeTab === 'done'} />
