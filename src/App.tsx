@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Sidebar } from './components/Sidebar'
 import { ContactPanel } from './components/ContactPanel'
 import { TasksPanel } from './components/TasksPanel'
-import { TasksPage } from './components/TasksPage'
 import { NotificationsPage } from './components/NotificationsPage'
 import { Icon } from './folk'
 
@@ -78,7 +77,7 @@ function App() {
     >
       <Sidebar
         activePage={view}
-        onTasksClick={() => setView(v => v === 'tasks' ? 'contact' : 'tasks')}
+        onTasksClick={() => setView(v => v === 'notifications' ? 'contact' : 'notifications')}
         onNotificationsClick={() => setView(v => v === 'notifications' ? 'contact' : 'notifications')}
         onGroupClick={() => setView('contact')}
       />
@@ -91,8 +90,6 @@ function App() {
               <TasksPanel />
             </div>
           </>
-        ) : view === 'tasks' ? (
-          <TasksPage />
         ) : (
           <NotificationsPage />
         )}
