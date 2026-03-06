@@ -5,6 +5,7 @@ import { Icon } from '../folk'
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type TaskStatus = 'todo' | 'done'
+type TaskGroup  = 'overdue' | 'today' | 'upcoming' | 'completed'
 type Priority   = 'urgent' | 'high' | 'medium' | 'low' | 'none'
 
 interface Task {
@@ -13,6 +14,7 @@ interface Task {
   dueDate: string
   assigneeAvatar: string
   status: TaskStatus
+  group: TaskGroup
   priority?: Priority
   overdue?: boolean
 }
@@ -20,15 +22,20 @@ interface Task {
 // ─── Data ────────────────────────────────────────────────────────────────────
 
 const INITIAL_TASKS: Task[] = [
-  { id: 1, title: 'Follow up with Lisa Anderson',    dueDate: 'Mar 28', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', overdue: true },
-  { id: 2, title: 'Send NDA to Acme Corp',           dueDate: 'Apr 1',  assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', overdue: true },
-  { id: 3, title: 'Review partnership proposal',     dueDate: 'Apr 4',  assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo' },
-  { id: 4, title: 'Schedule demo with Stripe team',  dueDate: 'Apr 6',  assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo' },
-  { id: 5, title: 'Prepare Q2 pipeline report',      dueDate: 'Apr 10', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo' },
-  { id: 6, title: 'Intro call with Y Combinator',    dueDate: 'Apr 1',  assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'done' },
-  { id: 7, title: 'Send thank you note to Jake',     dueDate: 'Mar 30', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'done' },
-  { id: 8, title: 'Update CRM with Berlin contacts', dueDate: 'Mar 28', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'done' },
-  { id: 9, title: 'Book flights for SF summit',      dueDate: 'Mar 25', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'done' },
+  // Overdue
+  { id: 1, title: 'Follow up with Lisa Anderson',    dueDate: 'Mar 28', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', group: 'overdue',   overdue: true },
+  { id: 2, title: 'Send NDA to Acme Corp',           dueDate: 'Apr 1',  assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', group: 'overdue',   overdue: true },
+  // Today
+  { id: 3, title: 'Review partnership proposal',     dueDate: 'Today',  assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', group: 'today' },
+  { id: 4, title: 'Schedule demo with Stripe team',  dueDate: 'Today',  assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', group: 'today' },
+  // Upcoming
+  { id: 5, title: 'Prepare Q2 pipeline report',      dueDate: 'Apr 10', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', group: 'upcoming' },
+  { id: 10, title: 'Call with Series B investors',   dueDate: 'Apr 12', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', group: 'upcoming' },
+  // Completed
+  { id: 6, title: 'Intro call with Y Combinator',    dueDate: 'Apr 1',  assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'done', group: 'completed' },
+  { id: 7, title: 'Send thank you note to Jake',     dueDate: 'Mar 30', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'done', group: 'completed' },
+  { id: 8, title: 'Update CRM with Berlin contacts', dueDate: 'Mar 28', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'done', group: 'completed' },
+  { id: 9, title: 'Book flights for SF summit',      dueDate: 'Mar 25', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'done', group: 'completed' },
 ]
 
 // ─── Priority definitions ─────────────────────────────────────────────────────
@@ -591,6 +598,7 @@ function NewTaskForm({
       dueDate: formatTaskDate(dueDate),
       assigneeAvatar: assignee.avatar ?? 'https://i.pravatar.cc/150?img=44',
       status: 'todo',
+      group: 'upcoming', // will be overridden by parent
       priority,
     })
     if (createMore) {
@@ -770,7 +778,7 @@ function NewTaskForm({
 
 function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: number) => void }) {
   const [hovered, setHovered] = useState(false)
-  const done = task.status === 'done'
+  const done = task.group === 'completed'
 
   return (
     <div
@@ -809,21 +817,55 @@ function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: number) => voi
 
 // ─── Section header ───────────────────────────────────────────────────────────
 
-function SectionHeader({ label, count, onNewTask }: { label: string; count: number; onNewTask?: () => void }) {
+function SectionHeader({ label, count, collapsed, onToggle, onAdd }: {
+  label: string
+  count: number
+  collapsed: boolean
+  onToggle: () => void
+  onAdd: () => void
+}) {
+  const [hovered, setHovered] = useState(false)
+
   return (
-    <div style={{ display: 'flex', alignItems: 'center', padding: '12px 16px 6px' }}>
-      <span style={{ fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.3px' }}>{label}</span>
-      <span style={{ fontSize: 13, color: 'rgba(0,0,0,0.3)', marginLeft: 6 }}>{count}</span>
-      {onNewTask && (
-        <button
-          onClick={onNewTask}
-          style={{ marginLeft: 'auto', height: 24, paddingLeft: 12, paddingRight: 12, background: 'rgba(0,0,0,0.87)', color: 'white', border: 'none', borderRadius: 100, fontSize: 12, fontWeight: 500, cursor: 'pointer', letterSpacing: '-0.04px' }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.75)')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.87)')}
-        >
-          New task
-        </button>
-      )}
+    <div
+      style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '8px 12px 4px', cursor: 'default' }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Collapse chevron */}
+      <button
+        onClick={onToggle}
+        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, borderRadius: 3, flexShrink: 0 }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.06)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+      >
+        <Icon
+          name="chevron_right"
+          size={14}
+          style={{ color: 'rgba(0,0,0,0.4)', transform: collapsed ? 'rotate(0deg)' : 'rotate(90deg)', transition: 'transform 0.15s' }}
+        />
+      </button>
+
+      {/* Label */}
+      <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.04px' }}>{label}</span>
+
+      {/* Count */}
+      <span style={{ fontSize: 13, color: 'rgba(0,0,0,0.4)', letterSpacing: '-0.04px' }}>{count}</span>
+
+      {/* + add button — visible on hover */}
+      <button
+        onClick={onAdd}
+        style={{
+          marginLeft: 'auto', background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: 20, height: 20, borderRadius: 4,
+          opacity: hovered ? 1 : 0, transition: 'opacity 0.1s',
+        }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.06)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+      >
+        <Icon name="add" size={14} style={{ color: 'rgba(0,0,0,0.5)' }} />
+      </button>
     </div>
   )
 }
@@ -831,19 +873,41 @@ function SectionHeader({ label, count, onNewTask }: { label: string; count: numb
 // ─── Main component ───────────────────────────────────────────────────────────
 
 type Tab = 'interactions' | 'notes' | 'tasks'
+
+const SECTIONS: { key: TaskGroup; label: string }[] = [
+  { key: 'overdue',   label: 'Overdue' },
+  { key: 'today',     label: 'Today' },
+  { key: 'upcoming',  label: 'Upcoming' },
+  { key: 'completed', label: 'Completed' },
+]
+
 let nextId = 100
 
 export function TasksPanel() {
-  const [activeTab, setActiveTab]   = useState<Tab>('tasks')
-  const [tasks, setTasks]           = useState<Task[]>(INITIAL_TASKS)
-  const [addingTask, setAddingTask] = useState(false)
+  const [activeTab, setActiveTab] = useState<Tab>('tasks')
+  const [tasks, setTasks]         = useState<Task[]>(INITIAL_TASKS)
+  const [addingTo, setAddingTo]   = useState<TaskGroup | null>(null)
+  const [collapsed, setCollapsed] = useState<Record<TaskGroup, boolean>>({
+    overdue: false, today: false, upcoming: false, completed: false,
+  })
 
-  const todo      = tasks.filter(t => t.status === 'todo')
-  const completed = tasks.filter(t => t.status === 'done')
+  const grouped = {
+    overdue:   tasks.filter(t => t.group === 'overdue'),
+    today:     tasks.filter(t => t.group === 'today'),
+    upcoming:  tasks.filter(t => t.group === 'upcoming'),
+    completed: tasks.filter(t => t.group === 'completed'),
+  }
+  const todoCount = grouped.overdue.length + grouped.today.length + grouped.upcoming.length
 
   function toggle(id: number) {
     setTasks(prev => prev.map(t =>
-      t.id === id ? { ...t, status: t.status === 'todo' ? 'done' : 'todo', overdue: false } : t
+      t.id === id
+        ? { ...t,
+            status: t.group === 'completed' ? 'todo' : 'done',
+            group:  t.group === 'completed' ? 'upcoming' : 'completed',
+            overdue: false,
+          }
+        : t
     ))
   }
 
@@ -851,10 +915,14 @@ export function TasksPanel() {
     setTasks(prev => [{ id: nextId++, ...task }, ...prev])
   }
 
+  function toggleCollapse(group: TaskGroup) {
+    setCollapsed(prev => ({ ...prev, [group]: !prev[group] }))
+  }
+
   const TABS: { key: Tab; label: string; count: number }[] = [
     { key: 'interactions', label: 'Interactions', count: 8 },
     { key: 'notes',        label: 'Notes',        count: 1 },
-    { key: 'tasks',        label: 'Tasks',        count: todo.length },
+    { key: 'tasks',        label: 'Tasks',        count: todoCount },
   ]
 
   return (
@@ -883,22 +951,45 @@ export function TasksPanel() {
         ))}
       </div>
 
+      {/* Tasks toolbar */}
+      {activeTab === 'tasks' && (
+        <div style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.08)', flexShrink: 0 }}>
+          <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.3px' }}>Tasks</span>
+          <button
+            onClick={() => setAddingTo('upcoming')}
+            style={{ height: 26, paddingLeft: 12, paddingRight: 12, background: 'rgba(0,0,0,0.87)', color: 'white', border: 'none', borderRadius: 100, fontSize: 12, fontWeight: 500, cursor: 'pointer', letterSpacing: '-0.04px' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.75)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.87)')}
+          >
+            New task
+          </button>
+        </div>
+      )}
+
       {/* Task list */}
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 16 }}>
-        {activeTab === 'tasks' && (
-          <>
-            <SectionHeader label="To do" count={todo.length} onNewTask={() => setAddingTask(true)} />
-            {todo.map(task => <TaskRow key={task.id} task={task} onToggle={toggle} />)}
-
-            <SectionHeader label="Completed" count={completed.length} />
-            {completed.map(task => <TaskRow key={task.id} task={task} onToggle={toggle} />)}
-          </>
-        )}
+        {activeTab === 'tasks' && SECTIONS.map(section => (
+          <div key={section.key}>
+            <SectionHeader
+              label={section.label}
+              count={grouped[section.key].length}
+              collapsed={collapsed[section.key]}
+              onToggle={() => toggleCollapse(section.key)}
+              onAdd={() => setAddingTo(section.key)}
+            />
+            {!collapsed[section.key] && grouped[section.key].map(task => (
+              <TaskRow key={task.id} task={task} onToggle={toggle} />
+            ))}
+          </div>
+        ))}
       </div>
 
       {/* New task modal */}
-      {addingTask && (
-        <NewTaskForm onClose={() => setAddingTask(false)} onCreate={createTask} />
+      {addingTo && (
+        <NewTaskForm
+          onClose={() => setAddingTo(null)}
+          onCreate={task => { createTask({ ...task, group: addingTo! }); setAddingTo(null) }}
+        />
       )}
     </div>
   )
