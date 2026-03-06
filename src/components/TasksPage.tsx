@@ -111,10 +111,10 @@ function RecordIcon({ type }: { type: RecordRef['type'] }) {
 // Record: 160px
 // Description: 200px
 
+const COL_NAME     = 280
 const COL_DUE      = 120
 const COL_ASSIGNEE = 160
 const COL_RECORD   = 160
-const COL_DESC     = 200
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -243,11 +243,11 @@ export function TasksPage() {
           paddingLeft: 42, paddingRight: 16,
           height: 34, flexShrink: 0,
         }}>
-          <HeaderCell label="Name" flex />
+          <HeaderCell label="Name" width={COL_NAME} />
           <HeaderCell label="Due date" width={COL_DUE} />
           <HeaderCell label="Assignee" width={COL_ASSIGNEE} />
           <HeaderCell label="Record" width={COL_RECORD} />
-          <HeaderCell label="Description" width={COL_DESC} last />
+          <HeaderCell label="Description" flex last />
         </div>
 
         {/* Rows */}
@@ -358,7 +358,7 @@ function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: number) => voi
 
       {/* Name */}
       <div style={{
-        flex: 1, minWidth: 0,
+        width: COL_NAME, flexShrink: 0, minWidth: 0,
         display: 'flex', alignItems: 'center',
         height: '100%',
         borderRight: '1px solid rgba(0,0,0,0.06)',
@@ -427,7 +427,7 @@ function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: number) => voi
 
       {/* Description */}
       <div style={{
-        width: COL_DESC, flexShrink: 0,
+        flex: 1, minWidth: 0,
         display: 'flex', alignItems: 'center',
         height: '100%',
         paddingLeft: 12,
