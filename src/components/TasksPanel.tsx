@@ -791,7 +791,7 @@ function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: number) => voi
       onMouseLeave={() => setHovered(false)}
     >
       <div
-        style={{ flexShrink: 0, cursor: 'pointer' }}
+        style={{ flexShrink: 0, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
         onClick={e => { e.stopPropagation(); onToggle(task.id) }}
       >
         {done
@@ -828,7 +828,7 @@ function SectionHeader({ label, count, collapsed, onToggle, onAdd }: {
 
   return (
     <div
-      style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '8px 12px 4px', cursor: 'default' }}
+      style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '8px 12px 4px', cursor: 'default', borderTop: '1px solid rgba(0,0,0,0.06)' }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
