@@ -1,913 +1,444 @@
-import React, { useState, useRef, useEffect } from 'react'
-import { createPortal } from 'react-dom'
+import React, { useState } from 'react'
 import { Icon } from '../folk'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type TaskStatus = 'todo' | 'done'
-type Priority = 'urgent' | 'high' | 'medium' | 'low' | 'none'
+
+interface RecordRef {
+  type: 'person' | 'company' | 'deal'
+  name: string
+}
 
 interface Task {
   id: number
   title: string
   dueDate: string
-  assigneeAvatar: string
+  assigneeName: string
+  assigneeInitials: string
+  assigneeColor: string
   status: TaskStatus
-  priority: Priority
   overdue?: boolean
-  group: 'overdue' | 'today' | 'upcoming' | 'completed'
+  record: RecordRef
+  description: string
 }
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
-const TASKS: Task[] = [
-  { id: 1,  title: "Respond to Tim's funding request", dueDate: 'Mar 29', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', priority: 'urgent', overdue: true, group: 'overdue' },
-  { id: 2,  title: 'Send contract to Johnson & Co', dueDate: 'Apr 1', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', priority: 'high', overdue: true, group: 'overdue' },
-  { id: 3,  title: 'Review Series A deck', dueDate: 'Today', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', priority: 'medium', group: 'today' },
-  { id: 4,  title: 'Review Q2 forecast with Sarah', dueDate: 'Today', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', priority: 'none', group: 'today' },
-  { id: 5,  title: 'Reach out to Berlin contacts', dueDate: 'Apr 8', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', priority: 'high', group: 'upcoming' },
-  { id: 6,  title: 'Follow up with Berlin office', dueDate: 'Apr 10', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', priority: 'none', group: 'upcoming' },
-  { id: 7,  title: 'Schedule product demo for April', dueDate: 'Apr 14', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', priority: 'low', group: 'upcoming' },
-  { id: 8,  title: 'Intro call with Sequoia Capital', dueDate: 'Apr 1', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'done', priority: 'none', group: 'completed' },
-  { id: 9,  title: 'Prepare investor deck', dueDate: 'Mar 31', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'done', priority: 'none', group: 'completed' },
-  { id: 10, title: 'Send onboarding emails to cohort', dueDate: 'Mar 28', assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'done', priority: 'none', group: 'completed' },
-  { id: 11, title: 'Update LinkedIn connections list', dueDate: 'Mar 27', assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'done', priority: 'none', group: 'completed' },
+const INITIAL_TASKS: Task[] = [
+  {
+    id: 1,
+    title: "Respond to Tim's funding request",
+    dueDate: 'Mar 4',
+    assigneeName: 'John Doe', assigneeInitials: 'JD', assigneeColor: '#5b6c8e',
+    status: 'todo', overdue: true,
+    record: { type: 'person', name: 'John Doe' },
+    description: 'Prepare a report on the proposal received last week from the investors.',
+  },
+  {
+    id: 2,
+    title: 'Send contract to Johnson & Co',
+    dueDate: 'Mar 4',
+    assigneeName: 'John Doe', assigneeInitials: 'JD', assigneeColor: '#5b6c8e',
+    status: 'todo', overdue: true,
+    record: { type: 'company', name: 'Qonto' },
+    description: 'Prepare a report on the partnership agreement draft v2.',
+  },
+  {
+    id: 3,
+    title: 'Review Series A deck',
+    dueDate: 'Mar 20',
+    assigneeName: 'John Doe', assigneeInitials: 'JD', assigneeColor: '#5b6c8e',
+    status: 'todo',
+    record: { type: 'deal', name: 'Deal 23' },
+    description: 'Prepare a report on the projected growth metrics for the next fiscal year.',
+  },
+  {
+    id: 4,
+    title: 'Schedule product demo for April',
+    dueDate: 'Apr 20',
+    assigneeName: 'John Doe', assigneeInitials: 'JD', assigneeColor: '#5b6c8e',
+    status: 'todo',
+    record: { type: 'person', name: 'Avner' },
+    description: 'Prepare a report on the Q3 pipeline and key account updates.',
+  },
+  {
+    id: 5,
+    title: 'Follow up with Berlin contacts',
+    dueDate: 'Apr 23',
+    assigneeName: 'John Doe', assigneeInitials: 'JD', assigneeColor: '#5b6c8e',
+    status: 'todo',
+    record: { type: 'person', name: 'Jean' },
+    description: 'Prepare a report on the Berlin expansion opportunity and next steps.',
+  },
 ]
 
-const PRIORITY_OPTIONS: { value: Priority; label: string; shortcut: string }[] = [
-  { value: 'none',   label: 'No priority', shortcut: '0' },
-  { value: 'urgent', label: 'Urgent',      shortcut: '1' },
-  { value: 'high',   label: 'High',        shortcut: '2' },
-  { value: 'medium', label: 'Medium',      shortcut: '3' },
-  { value: 'low',    label: 'Low',         shortcut: '4' },
+// ─── Tab types ────────────────────────────────────────────────────────────────
+
+type TaskTab = 'my' | 'all' | 'john' | 'overdue'
+
+const TABS: { key: TaskTab; label: string }[] = [
+  { key: 'my',      label: 'My tasks' },
+  { key: 'all',     label: 'All task' },
+  { key: 'john',    label: "John's task" },
+  { key: 'overdue', label: "Team's overdue" },
 ]
 
-// ─── Assignee definitions ─────────────────────────────────────────────────────
+// ─── Record icon ──────────────────────────────────────────────────────────────
 
-interface AssigneeOption {
-  id: string
-  name: string
-  avatar?: string
-  initials?: string
-  color?: string
-}
-
-const ASSIGNEES: AssigneeOption[] = [
-  { id: 'none', name: 'No assignee' },
-  { id: '1',    name: 'Bessie Cooper',   avatar: 'https://i.pravatar.cc/150?img=44' },
-  { id: '2',    name: 'Arlene McCoy',    initials: 'A', color: '#f59e0b' },
-  { id: '3',    name: 'Albert Flores',   avatar: 'https://i.pravatar.cc/150?img=12' },
-  { id: '4',    name: 'Marvin McKinney', initials: 'M', color: '#8b5cf6' },
-]
-
-// ─── Date helpers ─────────────────────────────────────────────────────────────
-
-function startOfDay(d: Date) {
-  const c = new Date(d); c.setHours(0, 0, 0, 0); return c
-}
-function formatDueDate(d: Date | null): string {
-  if (!d) return 'No date'
-  const today    = startOfDay(new Date())
-  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1)
-  const v = startOfDay(d)
-  if (v.getTime() === today.getTime())    return 'Today'
-  if (v.getTime() === tomorrow.getTime()) return 'Tomorrow'
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(d)
-}
-function formatTaskDate(d: Date | null): string {
-  if (!d) return ''
-  return formatDueDate(d)
-}
-
-// ─── Pill style ───────────────────────────────────────────────────────────────
-
-const pillStyle: React.CSSProperties = {
-  display: 'flex', alignItems: 'center', gap: 6,
-  height: 28, paddingLeft: 8, paddingRight: 10,
-  background: 'white', border: '1px solid #bbb', borderRadius: 100,
-  boxShadow: '0px 1px 1px 0px rgba(0,0,0,0.06)',
-  cursor: 'pointer',
-  fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 500, color: '#202020',
-  whiteSpace: 'nowrap',
-}
-
-// ─── Schedule options ─────────────────────────────────────────────────────────
-
-const TIME_OPTIONS: string[] = (() => {
-  const opts: string[] = []
-  for (let h = 0; h < 24; h++) {
-    const period = h < 12 ? 'AM' : 'PM'
-    const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h
-    opts.push(`${hour12}:00 ${period}`)
-    opts.push(`${hour12}:30 ${period}`)
+function RecordIcon({ type }: { type: RecordRef['type'] }) {
+  if (type === 'company') {
+    return (
+      <div style={{
+        width: 16, height: 16, borderRadius: 4, background: '#1a56db',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      }}>
+        <span style={{ fontSize: 9, fontWeight: 700, color: 'white', lineHeight: 1 }}>Q</span>
+      </div>
+    )
   }
-  return opts
-})()
-
-const REPEAT_OPTIONS = ['Every day','Every week day','Every week','Every 2 weeks','Every month','Every year','Custom']
-const REMINDER_OPTIONS = ['When task is due','5 min before','10 min before','30 min before','1 hour before','Custom']
-
-// ─── Toggle switch ────────────────────────────────────────────────────────────
-
-function ToggleSwitch({ on }: { on: boolean }) {
-  return (
-    <div style={{ width: 28, height: 16, borderRadius: 100, flexShrink: 0, background: on ? '#202020' : 'rgba(0,0,0,0.2)', position: 'relative', transition: 'background 0.15s' }}>
-      <div style={{ position: 'absolute', width: 12, height: 12, borderRadius: '50%', background: 'white', top: 2, left: on ? 14 : 2, transition: 'left 0.15s' }} />
-    </div>
-  )
+  if (type === 'deal') {
+    return <Icon name="handshake" size={14} style={{ color: 'rgba(0,0,0,0.4)', flexShrink: 0 }} />
+  }
+  return <Icon name="account_circle" size={14} style={{ color: 'rgba(0,0,0,0.4)', flexShrink: 0 }} />
 }
 
-// ─── Sub-picker ───────────────────────────────────────────────────────────────
+// ─── Column widths ────────────────────────────────────────────────────────────
 
-function SubPicker({ options, current, anchorRect, onSelect, onClose }: {
-  options: string[]; current: string | null; anchorRect: DOMRect
-  onSelect: (v: string) => void; onClose: () => void
-}) {
-  const w = 188
-  const left = window.innerWidth - anchorRect.right - 8 >= w ? anchorRect.right + 4 : anchorRect.left - w - 4
-  const top  = Math.min(anchorRect.top, window.innerHeight - 260)
-  return createPortal(
-    <>
-      <div style={{ position: 'fixed', inset: 0, zIndex: 1003 }} onMouseDown={onClose} />
-      <div style={{ position: 'fixed', top, left, zIndex: 1004, width: w, background: 'white', borderRadius: 8, border: '1px solid rgba(141,141,141,0.24)', boxShadow: '0px 9px 24px rgba(24,26,27,0.16)', overflow: 'hidden', maxHeight: 244, overflowY: 'auto' }} onMouseDown={e => e.stopPropagation()}>
-        <div style={{ padding: '4px 4px' }}>
-          {options.map(opt => (
-            <button key={opt} className="flex items-center w-full"
-              style={{ gap: 8, height: 32, paddingLeft: 8, paddingRight: 8, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', borderRadius: 4, fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: current === opt ? 500 : 400, color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.04px' }}
-              onMouseEnter={e => { if (current !== opt) e.currentTarget.style.background = 'rgba(0,0,0,0.04)' }}
-              onMouseLeave={e => { if (current !== opt) e.currentTarget.style.background = 'transparent' }}
-              onClick={() => { onSelect(opt); onClose() }}
+// Name: flex + Checkbox offset handled inside cell
+// Due date: 120px
+// Assignee: 160px
+// Record: 160px
+// Description: 200px
+
+const COL_DUE      = 120
+const COL_ASSIGNEE = 160
+const COL_RECORD   = 160
+const COL_DESC     = 200
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+let nextId = 100
+
+export function TasksPage() {
+  const [activeTab, setActiveTab] = useState<TaskTab>('my')
+  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS)
+  const [newTitle, setNewTitle] = useState('')
+  const [addingInline, setAddingInline] = useState(false)
+
+  function toggleTask(id: number) {
+    setTasks(prev => prev.map(t =>
+      t.id === id ? { ...t, status: t.status === 'done' ? 'todo' : 'done' } : t
+    ))
+  }
+
+  function createInline() {
+    if (!newTitle.trim()) { setAddingInline(false); return }
+    setTasks(prev => [...prev, {
+      id: nextId++,
+      title: newTitle.trim(),
+      dueDate: '',
+      assigneeName: 'John Doe', assigneeInitials: 'JD', assigneeColor: '#5b6c8e',
+      status: 'todo',
+      record: { type: 'person', name: 'John Doe' },
+      description: '',
+    }])
+    setNewTitle('')
+    setAddingInline(false)
+  }
+
+  const displayed = activeTab === 'overdue'
+    ? tasks.filter(t => t.overdue)
+    : tasks
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', background: 'white' }}>
+
+      {/* ── Header ── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', flexShrink: 0,
+        padding: '0 20px', height: 52,
+        borderBottom: '1px solid rgba(0,0,0,0.08)',
+      }}>
+        <span style={{ fontSize: 18, fontWeight: 600, color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.3px' }}>
+          Tasks
+        </span>
+        <button
+          onClick={() => setAddingInline(true)}
+          style={{
+            marginLeft: 'auto',
+            height: 28, paddingLeft: 12, paddingRight: 12,
+            background: 'rgba(0,0,0,0.87)', color: 'white',
+            border: 'none', borderRadius: 100,
+            fontSize: 12, fontWeight: 500, cursor: 'pointer', letterSpacing: '-0.04px',
+            fontFamily: 'inherit',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.72)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.87)')}
+        >
+          New task
+        </button>
+      </div>
+
+      {/* ── Tab bar ── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', flexShrink: 0,
+        borderBottom: '1px solid rgba(0,0,0,0.08)',
+        paddingLeft: 20, paddingRight: 20, height: 38,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 0, flex: 1 }}>
+          {TABS.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              style={{
+                height: 38, paddingLeft: 10, paddingRight: 10,
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontFamily: 'inherit', fontSize: 13, letterSpacing: '-0.04px',
+                color: activeTab === tab.key ? 'rgba(0,0,0,0.87)' : 'rgba(0,0,0,0.45)',
+                fontWeight: activeTab === tab.key ? 500 : 400,
+                borderBottom: activeTab === tab.key ? '1.5px solid rgba(0,0,0,0.87)' : '1.5px solid transparent',
+                marginBottom: -1, whiteSpace: 'nowrap',
+              }}
             >
-              <div style={{ width: 14, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {current === opt && <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7L5.5 10.5L12 3.5" stroke="rgba(0,0,0,0.61)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-              </div>
-              <span>{opt}</span>
+              {tab.label}
+            </button>
+          ))}
+          <button style={{
+            width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'none', border: 'none', cursor: 'pointer', borderRadius: 4, marginLeft: 4,
+          }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+          >
+            <Icon name="add" size={14} style={{ color: 'rgba(0,0,0,0.45)' }} />
+          </button>
+        </div>
+
+        {/* Right actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          {(['filter_list', 'swap_vert', 'search'] as const).map(icon => (
+            <button
+              key={icon}
+              style={{
+                width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'none', border: 'none', cursor: 'pointer', borderRadius: 4,
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+            >
+              <Icon name={icon} size={14} style={{ color: 'rgba(0,0,0,0.45)' }} />
             </button>
           ))}
         </div>
       </div>
-    </>,
-    document.body,
-  )
-}
 
-// ─── Assignee picker ──────────────────────────────────────────────────────────
+      {/* ── Table ── */}
+      <div style={{ flex: 1, overflowY: 'auto' }}>
 
-function AssigneePicker({ current, anchorRect, onSelect, onClose }: {
-  current: string; anchorRect: DOMRect
-  onSelect: (a: AssigneeOption) => void; onClose: () => void
-}) {
-  const [search, setSearch] = useState('')
-  const filtered = ASSIGNEES.filter(a => a.name.toLowerCase().includes(search.toLowerCase()))
-  return createPortal(
-    <>
-      <div style={{ position: 'fixed', inset: 0, zIndex: 1001 }} onMouseDown={onClose} />
-      <div style={{ position: 'fixed', top: anchorRect.bottom + 6, left: anchorRect.left, zIndex: 1002, width: 240, background: 'white', borderRadius: 8, border: '1px solid rgba(141,141,141,0.24)', boxShadow: '0px 9px 24px rgba(24,26,27,0.16)', overflow: 'hidden' }} onMouseDown={e => e.stopPropagation()}>
-        <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Icon name="search" size={14} style={{ color: 'rgba(0,0,0,0.3)', flexShrink: 0 }} />
-          <input autoFocus value={search} onChange={e => setSearch(e.target.value)} placeholder="Search member" onKeyDown={e => e.key === 'Escape' && onClose()} style={{ border: 'none', outline: 'none', padding: 0, flex: 1, fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#202020', background: 'transparent' }} />
+        {/* Column headers */}
+        <div style={{
+          display: 'flex', alignItems: 'center',
+          borderBottom: '1px solid rgba(0,0,0,0.08)',
+          paddingLeft: 42, paddingRight: 16,
+          height: 34, flexShrink: 0,
+        }}>
+          <HeaderCell label="Name" flex />
+          <HeaderCell label="Due date" width={COL_DUE} />
+          <HeaderCell label="Assignee" width={COL_ASSIGNEE} />
+          <HeaderCell label="Record" width={COL_RECORD} />
+          <HeaderCell label="Description" width={COL_DESC} last />
         </div>
-        <div style={{ padding: '6px 12px 2px', fontSize: 11, fontWeight: 500, color: 'rgba(0,0,0,0.4)', textTransform: 'uppercase', letterSpacing: '0.5px', fontFamily: 'Inter, sans-serif' }}>Assign to</div>
-        {filtered.map(a => (
-          <button key={a.id} className="flex items-center w-full" style={{ gap: 8, height: 32, paddingLeft: 12, paddingRight: 12, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }} onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')} onClick={() => { onSelect(a); onClose() }}>
-            {a.id === 'none' ? <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="account_circle" size={12} style={{ color: 'rgba(0,0,0,0.4)' }} /></div>
-              : a.avatar ? <img src={a.avatar} alt="" style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0 }} />
-              : <div style={{ width: 16, height: 16, borderRadius: '50%', background: a.color || '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 9, fontWeight: 700, color: 'white' }}>{a.initials}</div>}
-            <span style={{ flex: 1, fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, color: '#202020', letterSpacing: '-0.04px' }}>{a.name}</span>
-            {current === a.id && <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7L5.5 10.5L12 3.5" stroke="rgba(0,0,0,0.61)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-          </button>
+
+        {/* Rows */}
+        {displayed.map(task => (
+          <TaskRow key={task.id} task={task} onToggle={toggleTask} />
         ))}
-        <div style={{ height: 1, background: 'rgba(0,0,0,0.08)', margin: '4px 0' }} />
-        <button className="flex items-center w-full" style={{ gap: 8, height: 32, paddingLeft: 12, paddingRight: 12, border: 'none', background: 'transparent', cursor: 'pointer' }} onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-          <div style={{ width: 16, height: 16, borderRadius: '50%', border: '1.5px dashed rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="add" size={10} style={{ color: 'rgba(0,0,0,0.4)' }} /></div>
-          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.61)', letterSpacing: '-0.04px' }}>Invite &amp; assign new member</span>
-        </button>
-      </div>
-    </>,
-    document.body,
-  )
-}
 
-// ─── Date picker ──────────────────────────────────────────────────────────────
-
-const DOW_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-
-function DatePicker({ current, anchorRect, onSelect, onClose, time, onTimeChange, repeat, onRepeatChange, reminder, onReminderChange }: {
-  current: Date | null; anchorRect: DOMRect
-  onSelect: (d: Date | null) => void; onClose: () => void
-  time: string | null; onTimeChange: (t: string | null) => void
-  repeat: string | null; onRepeatChange: (r: string | null) => void
-  reminder: string | null; onReminderChange: (rem: string | null) => void
-}) {
-  const today = startOfDay(new Date())
-  const [viewMonth, setViewMonth] = useState(startOfDay(current || today))
-  const [timeAnchor, setTimeAnchor] = useState<DOMRect | null>(null)
-  const [repeatAnchor, setRepeatAnchor] = useState<DOMRect | null>(null)
-  const [reminderAnchor, setReminderAnchor] = useState<DOMRect | null>(null)
-  const year = viewMonth.getFullYear(); const month = viewMonth.getMonth()
-  const monthLabel = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(viewMonth)
-  const firstDay = new Date(year, month, 1)
-  let startOffset = firstDay.getDay() - 1; if (startOffset < 0) startOffset = 6
-  const cells: Date[] = []
-  for (let i = startOffset; i > 0; i--) cells.push(new Date(year, month, 1 - i))
-  const lastDate = new Date(year, month + 1, 0).getDate()
-  for (let d = 1; d <= lastDate; d++) cells.push(new Date(year, month, d))
-  while (cells.length % 7 !== 0) cells.push(new Date(year, month, lastDate + (cells.length - startOffset - lastDate + 1)))
-  const isSameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
-  const quickPicks = [
-    { label: 'Today',      date: today },
-    { label: 'Tomorrow',   date: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1) },
-    { label: 'In 3 days',  date: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3) },
-    { label: 'In 1 week',  date: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7) },
-    { label: 'In 2 weeks', date: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 14) },
-  ]
-  const spaceBelow = window.innerHeight - anchorRect.bottom - 8
-  const pickerH = 340
-  const top = spaceBelow >= pickerH ? anchorRect.bottom + 6 : anchorRect.top - pickerH - 6
-  const left = Math.min(anchorRect.left, window.innerWidth - 288)
-  return createPortal(
-    <>
-      <div style={{ position: 'fixed', inset: 0, zIndex: 1001 }} onMouseDown={onClose} />
-      <div style={{ position: 'fixed', top, left, zIndex: 1002, width: 280, background: 'white', borderRadius: 8, border: '1px solid rgba(141,141,141,0.24)', boxShadow: '0px 9px 24px rgba(24,26,27,0.16)', overflow: 'hidden' }} onMouseDown={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', gap: 8, padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.12)', flexWrap: 'wrap', background: '#f9f9f9' }}>
-          {quickPicks.map(q => (
-            <button key={q.label} onClick={() => { onSelect(q.date); onClose() }} style={{ height: 24, paddingLeft: 10, paddingRight: 10, background: current && isSameDay(current, q.date) ? '#202020' : 'white', color: current && isSameDay(current, q.date) ? 'white' : '#202020', border: `1px solid ${current && isSameDay(current, q.date) ? '#202020' : '#bbb'}`, borderRadius: 100, cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 500 }}>{q.label}</button>
-          ))}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', padding: '10px 12px 6px' }}>
-          <button onClick={() => setViewMonth(new Date(year, month - 1, 1))} style={{ width: 24, height: 24, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4 }} onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}><Icon name="chevron_left" size={16} style={{ color: 'rgba(0,0,0,0.61)' }} /></button>
-          <span style={{ flex: 1, textAlign: 'center', fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, color: '#202020', letterSpacing: '-0.04px' }}>{monthLabel}</span>
-          <button onClick={() => setViewMonth(new Date(year, month + 1, 1))} style={{ width: 24, height: 24, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4 }} onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}><Icon name="chevron_right" size={16} style={{ color: 'rgba(0,0,0,0.61)' }} /></button>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', padding: '0 12px', marginBottom: 2 }}>
-          {DOW_LABELS.map(d => <div key={d} style={{ textAlign: 'center', fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 500, color: 'rgba(0,0,0,0.4)', paddingBottom: 4 }}>{d}</div>)}
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', padding: '0 12px 12px', gap: 2 }}>
-          {cells.map((cell, i) => {
-            const isCurrentM = cell.getMonth() === month
-            const isSelected = current ? isSameDay(cell, current) : false
-            const isTodayCell = isSameDay(cell, today)
-            return (
-              <button key={i} onClick={() => { onSelect(cell); onClose() }} style={{ height: 28, width: '100%', borderRadius: 6, border: isTodayCell && !isSelected ? '1px solid rgba(0,0,0,0.12)' : 'none', background: isSelected ? '#202020' : 'transparent', color: isSelected ? 'white' : isCurrentM ? '#202020' : 'rgba(0,0,0,0.3)', fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: isSelected ? 600 : 400, cursor: 'pointer' }} onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(0,0,0,0.04)' }} onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent' }}>{cell.getDate()}</button>
-            )
-          })}
-        </div>
-        <div style={{ borderTop: '1px solid rgba(0,0,0,0.08)', padding: '4px 4px' }}>
-          {([
-            { icon: 'schedule',      value: time,     defaultLabel: '9 AM',      onOpen: setTimeAnchor,     onClear: () => onTimeChange(null),     noClear: true },
-            { icon: 'notifications', value: reminder, defaultLabel: 'Remind me', onOpen: setReminderAnchor, onClear: () => onReminderChange(null) },
-            { icon: 'replay',        value: repeat,   defaultLabel: 'Repeat',    onOpen: setRepeatAnchor,   onClear: () => onRepeatChange(null) },
-          ] as { icon: string; value: string | null; defaultLabel: string; onOpen: (r: DOMRect) => void; onClear: () => void; noClear?: boolean }[]).map(row => (
-            <div key={row.defaultLabel} className="flex items-center" style={{ height: 28, paddingLeft: 6, paddingRight: 8, gap: 8, borderRadius: 4, cursor: 'pointer' }} onClick={e => row.onOpen(e.currentTarget.getBoundingClientRect())} onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-              <Icon name={row.icon} size={16} style={{ color: row.value ? 'rgba(0,0,0,0.87)' : 'rgba(0,0,0,0.61)', flexShrink: 0 }} />
-              <span style={{ flex: 1, fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.04px' }}>{row.value || row.defaultLabel}</span>
-              {row.value && !row.noClear && (
-                <div onClick={e => { e.stopPropagation(); row.onClear() }} style={{ width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', flexShrink: 0 }} onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.08)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                  <Icon name="close" size={12} style={{ color: 'rgba(0,0,0,0.4)' }} />
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-        {timeAnchor     && <SubPicker options={TIME_OPTIONS}     current={time}     anchorRect={timeAnchor}     onSelect={v => { onTimeChange(v);     setTimeAnchor(null) }}     onClose={() => setTimeAnchor(null)} />}
-        {reminderAnchor && <SubPicker options={REMINDER_OPTIONS} current={reminder} anchorRect={reminderAnchor} onSelect={v => { onReminderChange(v); setReminderAnchor(null) }} onClose={() => setReminderAnchor(null)} />}
-        {repeatAnchor   && <SubPicker options={REPEAT_OPTIONS}   current={repeat}   anchorRect={repeatAnchor}   onSelect={v => { onRepeatChange(v);   setRepeatAnchor(null) }}   onClose={() => setRepeatAnchor(null)} />}
-      </div>
-    </>,
-    document.body,
-  )
-}
-
-// ─── Priority icon ─────────────────────────────────────────────────────────
-
-function PriorityIcon({ priority }: { priority: Priority }) {
-  if (priority === 'urgent') {
-    return (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
-        <rect x="1" y="1" width="14" height="14" rx="3" fill="#202020" />
-        <text x="8" y="12" textAnchor="middle" fill="white" fontSize="10" fontWeight="700" fontFamily="Inter, sans-serif">!</text>
-      </svg>
-    )
-  }
-  if (priority === 'high') {
-    return (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
-        <rect x="1.5" y="8"  width="3" height="6"  fill="#626262" />
-        <rect x="6.5" y="5"  width="3" height="9"  fill="#626262" />
-        <rect x="11.5" y="2" width="3" height="12" fill="#626262" />
-      </svg>
-    )
-  }
-  if (priority === 'medium') {
-    return (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
-        <rect x="1.5" y="8"  width="3" height="6"  fill="#626262" />
-        <rect x="6.5" y="5"  width="3" height="9"  fill="#626262" />
-        <rect x="11.5" y="2" width="3" height="12" fill="#e1e1e1" />
-      </svg>
-    )
-  }
-  if (priority === 'low') {
-    return (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
-        <rect x="1.5" y="8"  width="3" height="6"  fill="#626262" />
-        <rect x="6.5" y="5"  width="3" height="9"  fill="#e1e1e1" />
-        <rect x="11.5" y="2" width="3" height="12" fill="#e1e1e1" />
-      </svg>
-    )
-  }
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
-      <circle cx="3.5"  cy="8" r="1.5" fill="rgba(0,0,0,0.3)" />
-      <circle cx="8"    cy="8" r="1.5" fill="rgba(0,0,0,0.3)" />
-      <circle cx="12.5" cy="8" r="1.5" fill="rgba(0,0,0,0.3)" />
-    </svg>
-  )
-}
-
-// ─── Priority picker ────────────────────────────────────────────────────────
-
-function PriorityPicker({
-  current, anchorRect, onSelect, onClose,
-}: {
-  current: Priority
-  anchorRect: DOMRect
-  onSelect: (p: Priority) => void
-  onClose: () => void
-}) {
-  const top  = anchorRect.bottom + 6
-  const left = anchorRect.left
-
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { onClose(); return }
-      const opt = PRIORITY_OPTIONS.find(o => o.shortcut === e.key)
-      if (opt) { onSelect(opt.value); onClose() }
-    }
-    document.addEventListener('keydown', handleKey)
-    return () => document.removeEventListener('keydown', handleKey)
-  }, [onSelect, onClose])
-
-  return createPortal(
-    <>
-      <div style={{ position: 'fixed', inset: 0, zIndex: 999 }} onMouseDown={onClose} />
-      <div
-        style={{
-          position: 'fixed', top, left, zIndex: 1000,
-          width: 240, background: 'white', borderRadius: 8,
-          border: '1px solid rgba(0,0,0,0.12)',
-          boxShadow: '0px 8px 24px rgba(0,0,0,0.12)',
-          overflow: 'hidden',
-        }}
-        onMouseDown={e => e.stopPropagation()}
-      >
-        <div style={{ padding: '8px 12px 6px', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
-          <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.4)' }}>Change priority to...</span>
-        </div>
-        {PRIORITY_OPTIONS.map(opt => (
-          <div
-            key={opt.value}
-            className="flex items-center"
-            style={{
-              gap: 10, padding: '6px 12px', cursor: 'pointer',
-              background: opt.value === current ? 'rgba(0,0,0,0.04)' : 'transparent',
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(0,0,0,0.04)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = opt.value === current ? 'rgba(0,0,0,0.04)' : 'transparent' }}
-            onMouseDown={e => { e.stopPropagation(); onSelect(opt.value); onClose() }}
-          >
-            <PriorityIcon priority={opt.value} />
-            <span style={{ fontSize: 13, color: 'rgba(0,0,0,0.87)', flex: 1 }}>{opt.label}</span>
-            <span style={{ fontSize: 11, color: 'rgba(0,0,0,0.3)' }}>{opt.shortcut}</span>
+        {/* Inline add row */}
+        {addingInline ? (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            paddingLeft: 16, paddingRight: 16, height: 36,
+            borderBottom: '1px solid rgba(0,0,0,0.06)',
+          }}>
+            <div style={{ width: 16, height: 16, flexShrink: 0 }} />
+            <input
+              autoFocus
+              value={newTitle}
+              onChange={e => setNewTitle(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') createInline()
+                if (e.key === 'Escape') { setAddingInline(false); setNewTitle('') }
+              }}
+              onBlur={createInline}
+              placeholder="New task title..."
+              style={{
+                flex: 1, border: 'none', outline: 'none', background: 'transparent',
+                fontFamily: 'inherit', fontSize: 13, color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.04px',
+              }}
+            />
           </div>
-        ))}
-      </div>
-    </>,
-    document.body,
-  )
-}
-
-// ─── Circle checkbox ─────────────────────────────────────────────────────────
-
-function CircleCheckbox({ done, onToggle }: { done: boolean; onToggle: () => void }) {
-  if (done) {
-    return (
-      <button
-        onClick={e => { e.stopPropagation(); onToggle() }}
-        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16 }}
-      >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <circle cx="8" cy="8" r="7.5" fill="rgba(0,0,0,0.1)" stroke="rgba(0,0,0,0.1)" />
-          <path d="M4.5 8L7 10.5L11.5 6" stroke="rgba(0,0,0,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
-    )
-  }
-  return (
-    <button
-      onClick={e => { e.stopPropagation(); onToggle() }}
-      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16 }}
-    >
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <circle cx="8" cy="8" r="7.5" stroke="rgba(0,0,0,0.2)" />
-      </svg>
-    </button>
-  )
-}
-
-// ─── Task row ────────────────────────────────────────────────────────────────
-
-function TaskRow({
-  task, onToggle, onPriorityChange, onOpen,
-}: {
-  task: Task
-  onToggle: (id: number) => void
-  onPriorityChange: (id: number, p: Priority) => void
-  onOpen: (task: Task) => void
-}) {
-  const [hovered, setHovered] = useState(false)
-  const [priorityAnchor, setPriorityAnchor] = useState<DOMRect | null>(null)
-  const priorityRef = useRef<HTMLButtonElement>(null)
-
-  const isCompleted = task.status === 'done'
-
-  return (
-    <>
-      <div
-        className="flex items-center"
-        style={{
-          paddingLeft: 16,
-          paddingRight: 16,
-          height: 36,
-          gap: 8,
-          background: hovered ? 'rgba(0,0,0,0.02)' : 'transparent',
-          cursor: 'pointer',
-        }}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        onClick={() => onOpen(task)}
-      >
-        {/* Priority icon / drag handle */}
-        <button
-          ref={priorityRef}
-          style={{
-            background: 'none', border: 'none', padding: 0,
-            cursor: 'pointer', flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: 16, height: 16,
-            opacity: hovered || task.priority !== 'none' ? 1 : 0.4,
-          }}
-          onClick={e => {
-            e.stopPropagation()
-            setPriorityAnchor(priorityRef.current!.getBoundingClientRect())
-          }}
-        >
-          <PriorityIcon priority={task.priority} />
-        </button>
-
-        {/* Checkbox */}
-        <CircleCheckbox done={isCompleted} onToggle={() => onToggle(task.id)} />
-
-        {/* Title */}
-        <span
-          className="flex-1 truncate"
-          style={{
-            fontSize: 13,
-            color: isCompleted ? 'rgba(0,0,0,0.38)' : 'rgba(0,0,0,0.87)',
-            letterSpacing: '-0.04px',
-          }}
-        >
-          {task.title}
-        </span>
-
-        {/* Date */}
-        {task.dueDate && (
-          <span
+        ) : (
+          <button
+            onClick={() => setAddingInline(true)}
             style={{
-              fontSize: 12,
-              color: task.overdue ? '#e5484d' : isCompleted ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.45)',
-              flexShrink: 0,
+              display: 'flex', alignItems: 'center', gap: 6,
+              paddingLeft: 16, paddingTop: 8, paddingBottom: 8,
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: 13, color: 'rgba(0,0,0,0.4)', letterSpacing: '-0.04px',
             }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'rgba(0,0,0,0.61)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(0,0,0,0.4)')}
           >
-            {task.dueDate}
-          </span>
+            <Icon name="add" size={14} style={{ color: 'inherit' }} />
+            <span>New task</span>
+          </button>
         )}
-
-        {/* Avatar */}
-        <img
-          src={task.assigneeAvatar}
-          style={{
-            width: 20,
-            height: 20,
-            borderRadius: '50%',
-            flexShrink: 0,
-            opacity: isCompleted ? 0.4 : 1,
-          }}
-        />
       </div>
-
-      {priorityAnchor && (
-        <PriorityPicker
-          current={task.priority}
-          anchorRect={priorityAnchor}
-          onSelect={p => onPriorityChange(task.id, p)}
-          onClose={() => setPriorityAnchor(null)}
-        />
-      )}
-    </>
+    </div>
   )
 }
 
-// ─── Section header ───────────────────────────────────────────────────────────
+// ─── Header cell ──────────────────────────────────────────────────────────────
 
-function SectionHeader({
-  label, count, collapsed, onToggle, showPlus, onOpenForm,
-}: {
+function HeaderCell({ label, flex, width, last }: {
   label: string
-  count: number
-  collapsed: boolean
-  onToggle: () => void
-  showPlus?: boolean
-  onOpenForm?: () => void
+  flex?: boolean
+  width?: number
+  last?: boolean
 }) {
+  return (
+    <div style={{
+      flex: flex ? 1 : undefined,
+      width: flex ? undefined : width,
+      minWidth: flex ? 0 : width,
+      maxWidth: flex ? undefined : width,
+      flexShrink: flex ? 1 : 0,
+      display: 'flex', alignItems: 'center',
+      height: '100%',
+      borderRight: last ? 'none' : '1px solid rgba(0,0,0,0.08)',
+      paddingRight: 12,
+    }}>
+      <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.4)', fontWeight: 400, letterSpacing: '-0.04px' }}>
+        {label}
+      </span>
+    </div>
+  )
+}
+
+// ─── Task row ─────────────────────────────────────────────────────────────────
+
+function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: number) => void }) {
   const [hovered, setHovered] = useState(false)
+  const done = task.status === 'done'
+
   return (
     <div
-      className="flex items-center"
       style={{
-        paddingLeft: 20,
-        paddingRight: 8,
-        height: 32,
-        gap: 6,
-        cursor: 'pointer',
-        background: hovered ? 'rgba(0,0,0,0.02)' : 'transparent',
+        display: 'flex', alignItems: 'center',
+        paddingLeft: 16, paddingRight: 16, height: 36,
+        borderBottom: '1px solid rgba(0,0,0,0.06)',
+        background: hovered ? 'rgba(0,0,0,0.015)' : 'transparent',
+        cursor: 'default',
       }}
-      onClick={onToggle}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <svg
-        width="12" height="12" viewBox="0 0 12 12" fill="none"
-        style={{
-          flexShrink: 0,
-          transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
-          transition: 'transform 0.15s ease',
-          color: 'rgba(0,0,0,0.4)',
-        }}
-      >
-        <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-      <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.04px' }}>
-        {label}
-      </span>
-      <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.38)' }}>{count}</span>
-      {showPlus && (
-        <button
-          className="flex items-center justify-center"
-          style={{ width: 20, height: 20, borderRadius: 4, background: 'transparent', border: 'none', cursor: 'pointer', marginLeft: 2 }}
-          onClick={e => { e.stopPropagation(); onOpenForm?.() }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.06)')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-        >
-          <Icon name="add" size={12} style={{ color: 'rgba(0,0,0,0.5)' }} />
-        </button>
-      )}
-    </div>
-  )
-}
-
-// ─── New task form (full modal) ────────────────────────────────────────────────
-
-function NewTaskForm({ group, onClose, onCreate }: {
-  group: string
-  onClose: () => void
-  onCreate: (task: Omit<Task, 'id'>) => void
-}) {
-  const [title, setTitle]           = useState('')
-  const [description, setDescription] = useState('')
-  const [priority, setPriority]     = useState<Priority>('none')
-  const [assignee, setAssignee]     = useState<AssigneeOption>(ASSIGNEES[0])
-  const [dueDate, setDueDate]       = useState<Date | null>(null)
-  const [createMore, setCreateMore] = useState(false)
-  const [time,     setTime]     = useState<string | null>(null)
-  const [repeat,   setRepeat]   = useState<string | null>(null)
-  const [reminder, setReminder] = useState<string | null>(null)
-  const [priorityAnchor, setPriorityAnchor] = useState<DOMRect | null>(null)
-  const [assigneeAnchor, setAssigneeAnchor] = useState<DOMRect | null>(null)
-  const [dateAnchor,     setDateAnchor]     = useState<DOMRect | null>(null)
-  const titleRef = useRef<HTMLInputElement>(null)
-  useEffect(() => { titleRef.current?.focus() }, [])
-
-  const priorityLabel = priority === 'none' ? 'No prio' : priority.charAt(0).toUpperCase() + priority.slice(1)
-
-  const handleCreate = () => {
-    if (!title.trim()) return
-    onCreate({ title: title.trim(), dueDate: dueDate ? formatTaskDate(dueDate) : '', assigneeAvatar: assignee.avatar ?? 'https://i.pravatar.cc/150?img=44', status: 'todo', priority, group: group as Task['group'] })
-    if (createMore) {
-      setTitle(''); setDescription(''); setPriority('none')
-      setAssignee(ASSIGNEES[0]); setDueDate(null)
-      setTime(null); setRepeat(null); setReminder(null)
-      titleRef.current?.focus()
-    } else { onClose() }
-  }
-
-  return createPortal(
-    <>
-      <div style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.32)' }} onMouseDown={onClose} />
+      {/* Checkbox */}
       <div
-        style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 1000, width: 576, background: 'white', border: '1px solid #e1e1e1', overflow: 'hidden', boxShadow: '0px 9px 24px rgba(24,26,27,0.16)' }}
-        onMouseDown={e => e.stopPropagation()}
-        onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleCreate() }}
+        style={{ flexShrink: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', marginRight: 10 }}
+        onClick={() => onToggle(task.id)}
       >
-        <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 40 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <input ref={titleRef} value={title} onChange={e => setTitle(e.target.value)} placeholder="Task title" style={{ border: 'none', outline: 'none', padding: 0, width: '100%', fontFamily: '"Uxum Grotesque", sans-serif', fontSize: 20, fontWeight: 500, lineHeight: '24px', color: '#202020', background: 'transparent' }} />
-            <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Add description..." style={{ border: 'none', outline: 'none', padding: 0, width: '100%', fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 400, lineHeight: '18px', letterSpacing: '-0.04px', color: '#8c8c8c', background: 'transparent' }} />
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button style={pillStyle} onClick={e => setPriorityAnchor(e.currentTarget.getBoundingClientRect())}>
-              <PriorityIcon priority={priority} /><span>{priorityLabel}</span>
-            </button>
-            <button style={pillStyle} onClick={e => setAssigneeAnchor(e.currentTarget.getBoundingClientRect())}>
-              {assignee.id === 'none' ? <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="account_circle" size={12} style={{ color: 'rgba(0,0,0,0.4)' }} /></div>
-                : assignee.avatar ? <img src={assignee.avatar} alt="" style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0 }} />
-                : <div style={{ width: 16, height: 16, borderRadius: '50%', background: assignee.color || '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 9, fontWeight: 700, color: 'white' }}>{assignee.initials}</div>}
-              <span>{assignee.id === 'none' ? 'Assignee' : assignee.name}</span>
-            </button>
-            <button style={pillStyle} onClick={e => setDateAnchor(e.currentTarget.getBoundingClientRect())}>
-              <Icon name="calendar_today" size={14} style={{ color: 'rgba(0,0,0,0.61)', flexShrink: 0 }} />
-              <span>{dueDate ? formatDueDate(dueDate) : 'Date'}</span>
-            </button>
-          </div>
-        </div>
-        <div style={{ borderTop: '1px solid #e1e1e1', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
-          <button onClick={() => setCreateMore(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-            <ToggleSwitch on={createMore} />
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 400, color: '#626262' }}>Create more</span>
-          </button>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={onClose} style={{ height: 28, paddingLeft: 12, paddingRight: 12, background: 'white', border: '1px solid rgba(0,0,0,0.12)', borderRadius: 100, fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, letterSpacing: '-0.04px', color: 'rgba(0,0,0,0.61)', cursor: 'pointer' }}>Cancel</button>
-            <button onClick={handleCreate} style={{ height: 28, paddingLeft: 12, paddingRight: 12, background: title.trim() ? '#202020' : 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 100, fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 500, letterSpacing: '-0.04px', color: title.trim() ? 'white' : 'rgba(0,0,0,0.3)', cursor: title.trim() ? 'pointer' : 'default', transition: 'background 0.15s, color 0.15s' }}>Create task</button>
-          </div>
-        </div>
-      </div>
-      {priorityAnchor && <PriorityPicker current={priority} anchorRect={priorityAnchor} onSelect={p => { setPriority(p); setPriorityAnchor(null) }} onClose={() => setPriorityAnchor(null)} />}
-      {assigneeAnchor && <AssigneePicker current={assignee.id} anchorRect={assigneeAnchor} onSelect={a => setAssignee(a)} onClose={() => setAssigneeAnchor(null)} />}
-      {dateAnchor && <DatePicker current={dueDate} anchorRect={dateAnchor} onSelect={d => setDueDate(d)} onClose={() => setDateAnchor(null)} time={time} onTimeChange={setTime} repeat={repeat} onRepeatChange={setRepeat} reminder={reminder} onReminderChange={setReminder} />}
-    </>,
-    document.body,
-  )
-}
-
-// ─── TasksPage ────────────────────────────────────────────────────────────────
-
-export function TasksPage() {
-  const [activeTab, setActiveTab] = useState<'mine' | 'all'>('mine')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [tasks, setTasks] = useState<Task[]>(TASKS)
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
-  const [showNewTaskForm, setShowNewTaskForm] = useState<string | null>(null)
-
-  const handleToggle = (id: number) => {
-    setTasks(prev => prev.map(t => {
-      if (t.id !== id) return t
-      const done = t.status === 'done'
-      return {
-        ...t,
-        status: done ? 'todo' : 'done',
-        group: done ? (t.overdue ? 'overdue' : 'upcoming') : 'completed',
-      }
-    }))
-  }
-
-  const handlePriorityChange = (id: number, priority: Priority) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, priority } : t))
-  }
-
-  const handleNewTask = (task: Omit<Task, 'id'>) => {
-    const id = Math.max(...tasks.map(t => t.id)) + 1
-    setTasks(prev => [...prev, { id, ...task }])
-    setShowNewTaskForm(null)
-  }
-
-  const filteredTasks = searchQuery
-    ? tasks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()))
-    : tasks
-
-  const GROUPS: Array<{ key: Task['group']; label: string }> = [
-    { key: 'overdue',   label: 'Overdue' },
-    { key: 'today',     label: 'Today' },
-    { key: 'upcoming',  label: 'Upcoming' },
-    { key: 'completed', label: 'Completed' },
-  ]
-
-  const myTasksCount = tasks.filter(t => t.assigneeAvatar.includes('img=12') && t.status === 'todo').length
-  const allTasksCount = tasks.filter(t => t.status === 'todo').length
-
-  return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', overflow: 'hidden' }}>
-
-      {/* ── Header tabs ── */}
-      <div
-        className="flex items-center"
-        style={{
-          paddingLeft: 20,
-          paddingRight: 20,
-          height: 48,
-          borderBottom: '1px solid rgba(0,0,0,0.08)',
-          flexShrink: 0,
-          gap: 0,
-        }}
-      >
-        <TabButton
-          label="My tasks"
-          count={myTasksCount}
-          active={activeTab === 'mine'}
-          onClick={() => setActiveTab('mine')}
-        />
-        <TabButton
-          label="All tasks"
-          count={allTasksCount}
-          active={activeTab === 'all'}
-          onClick={() => setActiveTab('all')}
-        />
-        <div style={{ marginLeft: 'auto' }}>
-          <button
-            style={{
-              height: 32,
-              paddingLeft: 14,
-              paddingRight: 14,
-              background: '#111',
-              color: 'white',
-              border: 'none',
-              borderRadius: 100,
-              fontSize: 13,
-              fontWeight: 500,
-              cursor: 'pointer',
-              letterSpacing: '-0.04px',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.background = '#333')}
-            onMouseLeave={e => (e.currentTarget.style.background = '#111')}
-            onClick={() => setShowNewTaskForm('upcoming')}
-          >
-            New task
-          </button>
-        </div>
+        {done
+          ? <Icon name="check_circle" size={16} style={{ color: 'rgba(0,0,0,0.2)' }} />
+          : <Icon name="radio_button_unchecked" size={16} style={{ color: hovered ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.18)' }} />
+        }
       </div>
 
-      {/* ── Search + Filter ── */}
-      <div
-        className="flex items-center"
-        style={{
-          paddingLeft: 20,
-          paddingRight: 20,
-          paddingTop: 10,
-          paddingBottom: 10,
-          gap: 8,
-          borderBottom: '1px solid rgba(0,0,0,0.06)',
-          flexShrink: 0,
-        }}
-      >
-        {/* Search input */}
-        <div
-          className="flex items-center"
-          style={{
-            gap: 6,
-            height: 32,
-            paddingLeft: 10,
-            paddingRight: 10,
-            border: '1px solid rgba(0,0,0,0.12)',
-            borderRadius: 8,
-            background: 'white',
-            width: 220,
-          }}
-        >
-          <Icon name="search" size={14} style={{ color: 'rgba(0,0,0,0.38)', flexShrink: 0 }} />
-          <input
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search"
-            style={{
-              flex: 1, border: 'none', outline: 'none',
-              fontSize: 13, color: 'rgba(0,0,0,0.87)',
-              background: 'transparent', letterSpacing: '-0.04px',
-            }}
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-            >
-              <Icon name="close" size={12} style={{ color: 'rgba(0,0,0,0.38)' }} />
-            </button>
-          )}
-        </div>
-
-        {/* Filter button */}
-        <button
-          className="flex items-center"
-          style={{
-            gap: 6, height: 32, paddingLeft: 10, paddingRight: 10,
-            background: 'transparent', border: 'none', cursor: 'pointer',
-            borderRadius: 8,
-          }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-        >
-          <Icon name="filter_list" size={14} style={{ color: 'rgba(0,0,0,0.55)' }} />
-          <span style={{ fontSize: 13, color: 'rgba(0,0,0,0.55)', letterSpacing: '-0.04px' }}>Filter</span>
-        </button>
-      </div>
-
-      {/* ── Task list ── */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
-        {GROUPS.map(({ key, label }) => {
-          const items = filteredTasks.filter(t => t.group === key)
-          if (items.length === 0 && key === 'overdue') return null
-          const isCollapsed = !!collapsed[key]
-          const showPlus = key !== 'overdue'
-
-          return (
-            <React.Fragment key={key}>
-              <SectionHeader
-                label={label}
-                count={items.length}
-                collapsed={isCollapsed}
-                onToggle={() => setCollapsed(c => ({ ...c, [key]: !c[key] }))}
-                showPlus={showPlus}
-                onOpenForm={() => setShowNewTaskForm(key)}
-              />
-              {!isCollapsed && items.map(task => (
-                <TaskRow
-                  key={task.id}
-                  task={task}
-                  onToggle={handleToggle}
-                  onPriorityChange={handlePriorityChange}
-                  onOpen={() => {}}
-                />
-              ))}
-            </React.Fragment>
-          )
-        })}
-      </div>
-
-      {/* ── New task modal ── */}
-      {showNewTaskForm && (
-        <NewTaskForm
-          group={showNewTaskForm}
-          onClose={() => setShowNewTaskForm(null)}
-          onCreate={handleNewTask}
-        />
-      )}
-    </div>
-  )
-}
-
-// ─── Tab button ────────────────────────────────────────────────────────────────
-
-function TabButton({
-  label, count, active, onClick,
-}: {
-  label: string
-  count: number
-  active: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        background: 'none',
-        border: 'none',
-        borderBottom: active ? '2px solid rgba(0,0,0,0.87)' : '2px solid transparent',
-        padding: '0 12px',
+      {/* Name */}
+      <div style={{
+        flex: 1, minWidth: 0,
+        display: 'flex', alignItems: 'center',
         height: '100%',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 5,
-        marginBottom: active ? 0 : 0,
-      }}
-    >
-      <span
-        style={{
-          fontSize: 13,
-          fontWeight: active ? 600 : 400,
-          color: active ? 'rgba(0,0,0,0.87)' : 'rgba(0,0,0,0.45)',
-          letterSpacing: '-0.04px',
-        }}
-      >
-        {label}
-      </span>
-      <span
-        style={{
-          fontSize: 11,
-          color: active ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.3)',
-          fontWeight: 400,
-        }}
-      >
-        {count}
-      </span>
-    </button>
+        borderRight: '1px solid rgba(0,0,0,0.06)',
+        paddingRight: 12,
+      }}>
+        <span style={{
+          fontSize: 13, letterSpacing: '-0.04px',
+          color: done ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.87)',
+          textDecoration: done ? 'line-through' : 'none',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {task.title}
+        </span>
+      </div>
+
+      {/* Due date */}
+      <div style={{
+        width: COL_DUE, flexShrink: 0,
+        display: 'flex', alignItems: 'center',
+        height: '100%',
+        borderRight: '1px solid rgba(0,0,0,0.06)',
+        paddingLeft: 12, paddingRight: 12,
+      }}>
+        <span style={{
+          fontSize: 13, letterSpacing: '-0.04px',
+          color: task.overdue && !done ? '#e5484d' : 'rgba(0,0,0,0.45)',
+        }}>
+          {task.dueDate}
+        </span>
+      </div>
+
+      {/* Assignee */}
+      <div style={{
+        width: COL_ASSIGNEE, flexShrink: 0,
+        display: 'flex', alignItems: 'center', gap: 6,
+        height: '100%',
+        borderRight: '1px solid rgba(0,0,0,0.06)',
+        paddingLeft: 12, paddingRight: 12,
+      }}>
+        <div style={{
+          width: 16, height: 16, borderRadius: '50%',
+          background: task.assigneeColor, flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 8, fontWeight: 700, color: 'white',
+        }}>
+          {task.assigneeInitials.charAt(0)}
+        </div>
+        <span style={{ fontSize: 13, letterSpacing: '-0.04px', color: 'rgba(0,0,0,0.87)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {task.assigneeName}
+        </span>
+      </div>
+
+      {/* Record */}
+      <div style={{
+        width: COL_RECORD, flexShrink: 0,
+        display: 'flex', alignItems: 'center', gap: 6,
+        height: '100%',
+        borderRight: '1px solid rgba(0,0,0,0.06)',
+        paddingLeft: 12, paddingRight: 12,
+      }}>
+        <RecordIcon type={task.record.type} />
+        <span style={{ fontSize: 13, letterSpacing: '-0.04px', color: 'rgba(0,0,0,0.87)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {task.record.name}
+        </span>
+      </div>
+
+      {/* Description */}
+      <div style={{
+        width: COL_DESC, flexShrink: 0,
+        display: 'flex', alignItems: 'center',
+        height: '100%',
+        paddingLeft: 12,
+      }}>
+        <span style={{
+          fontSize: 13, letterSpacing: '-0.04px', color: 'rgba(0,0,0,0.4)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {task.description}
+        </span>
+      </div>
+    </div>
   )
 }
