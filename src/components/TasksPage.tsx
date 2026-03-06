@@ -1,14 +1,22 @@
-import { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '../folk'
+import { ActionBtn } from './ActionBtn'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type TaskStatus = 'todo' | 'done'
+type TaskGroup  = 'overdue' | 'today' | 'upcoming' | 'completed'
+type Priority   = 'urgent' | 'high' | 'medium' | 'low' | 'none'
+type TaskTab    = 'my' | 'all' | 'john' | 'overdue'
 
-interface RecordRef {
-  type: 'person' | 'company' | 'deal'
-  name: string
+interface Task {
+  id: number
+  title: string
+  dueDate: Date | null
+  assigneeAvatar: string
+  status: TaskStatus
+  priority?: Priority
 }
 
 interface AssigneeOption {
@@ -19,35 +27,22 @@ interface AssigneeOption {
   color?: string
 }
 
-interface Task {
-  id: number
-  title: string
-  dueDate: Date | null
-  dueTime: string | null
-  assigneeId: string
-  status: TaskStatus
-  record: RecordRef
-  description: string
-}
-
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const ASSIGNEES: AssigneeOption[] = [
   { id: 'none', name: 'No assignee' },
-  { id: '1',    name: 'John Doe',      initials: 'JD', color: '#5b6c8e' },
-  { id: '2',    name: 'Bessie Cooper', avatar: 'https://i.pravatar.cc/150?img=44' },
-  { id: '3',    name: 'Arlene McCoy',  initials: 'A',  color: '#f59e0b' },
-  { id: '4',    name: 'Albert Flores', avatar: 'https://i.pravatar.cc/150?img=12' },
+  { id: '1',    name: 'Bessie Cooper',   avatar: 'https://i.pravatar.cc/150?img=44' },
+  { id: '2',    name: 'Arlene McCoy',    initials: 'A', color: '#f59e0b' },
+  { id: '3',    name: 'Albert Flores',   avatar: 'https://i.pravatar.cc/150?img=12' },
+  { id: '4',    name: 'Marvin McKinney', initials: 'M', color: '#8b5cf6' },
 ]
 
-const RECORDS: RecordRef[] = [
-  { type: 'person',  name: 'John Doe' },
-  { type: 'person',  name: 'Avner' },
-  { type: 'person',  name: 'Jean' },
-  { type: 'company', name: 'Qonto' },
-  { type: 'company', name: 'Apple' },
-  { type: 'deal',    name: 'Deal 23' },
-  { type: 'deal',    name: 'Deal 45' },
+const PRIORITY_OPTIONS: { value: Priority; label: string; shortcut: string }[] = [
+  { value: 'none',   label: 'No priority', shortcut: '0' },
+  { value: 'urgent', label: 'Urgent',      shortcut: '1' },
+  { value: 'high',   label: 'High',        shortcut: '2' },
+  { value: 'medium', label: 'Medium',      shortcut: '3' },
+  { value: 'low',    label: 'Low',         shortcut: '4' },
 ]
 
 const DOW_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -66,6 +61,20 @@ const TIME_OPTIONS: string[] = (() => {
 const REPEAT_OPTIONS   = ['Every day', 'Every week day', 'Every week', 'Every 2 weeks', 'Every month', 'Every year', 'Custom']
 const REMINDER_OPTIONS = ['When task is due', '5 min before', '10 min before', '30 min before', '1 hour before', 'Custom']
 
+const TABS: { key: TaskTab; label: string }[] = [
+  { key: 'my',      label: 'My tasks' },
+  { key: 'all',     label: 'All tasks' },
+  { key: 'john',    label: "John's tasks" },
+  { key: 'overdue', label: "Team's overdue" },
+]
+
+const SECTIONS: { key: TaskGroup; label: string }[] = [
+  { key: 'overdue',   label: 'Overdue' },
+  { key: 'today',     label: 'Today' },
+  { key: 'upcoming',  label: 'Upcoming' },
+  { key: 'completed', label: 'Completed' },
+]
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function startOfDay(d: Date) {
@@ -82,88 +91,78 @@ function formatDueDate(d: Date | null): string {
   return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(d)
 }
 
-function isOverdue(d: Date | null): boolean {
-  if (!d) return false
-  return startOfDay(d) < startOfDay(new Date())
+function getGroup(task: Task): TaskGroup {
+  if (task.status === 'done') return 'completed'
+  if (!task.dueDate) return 'upcoming'
+  const d     = startOfDay(task.dueDate)
+  const today = startOfDay(new Date())
+  if (d < today) return 'overdue'
+  if (d.getTime() === today.getTime()) return 'today'
+  return 'upcoming'
 }
 
-function getAssignee(id: string): AssigneeOption {
-  return ASSIGNEES.find(a => a.id === id) ?? ASSIGNEES[0]
-}
-
-// ─── Data ─────────────────────────────────────────────────────────────────────
+// ─── Initial data ─────────────────────────────────────────────────────────────
 
 const INITIAL_TASKS: Task[] = [
-  {
-    id: 1, title: "Respond to Tim's funding request",
-    dueDate: new Date(2026, 2, 4), dueTime: null, assigneeId: '1', status: 'todo',
-    record: { type: 'person', name: 'John Doe' },
-    description: 'Prepare a report on the proposal received last week from the investors.',
-  },
-  {
-    id: 2, title: 'Send contract to Johnson & Co',
-    dueDate: new Date(2026, 2, 4), dueTime: null, assigneeId: '1', status: 'todo',
-    record: { type: 'company', name: 'Qonto' },
-    description: 'Prepare a report on the partnership agreement draft v2.',
-  },
-  {
-    id: 3, title: 'Review Series A deck',
-    dueDate: new Date(2026, 2, 20), dueTime: null, assigneeId: '1', status: 'todo',
-    record: { type: 'deal', name: 'Deal 23' },
-    description: 'Prepare a report on the projected growth metrics for the next fiscal year.',
-  },
-  {
-    id: 4, title: 'Schedule product demo for April',
-    dueDate: new Date(2026, 3, 20), dueTime: null, assigneeId: '1', status: 'todo',
-    record: { type: 'person', name: 'Avner' },
-    description: 'Prepare a report on the Q3 pipeline and key account updates.',
-  },
-  {
-    id: 5, title: 'Follow up with Berlin contacts',
-    dueDate: new Date(2026, 3, 23), dueTime: null, assigneeId: '1', status: 'todo',
-    record: { type: 'person', name: 'Jean' },
-    description: 'Prepare a report on the Berlin expansion opportunity and next steps.',
-  },
+  { id: 1, title: "Respond to Tim's funding request",   dueDate: new Date(2026, 2, 4),  assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo', priority: 'high' },
+  { id: 2, title: 'Send contract to Johnson & Co',      dueDate: new Date(2026, 2, 4),  assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo', priority: 'urgent' },
+  { id: 3, title: 'Review Series A deck',               dueDate: new Date(2026, 2, 20), assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo' },
+  { id: 4, title: 'Schedule product demo for April',    dueDate: new Date(2026, 3, 20), assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'todo' },
+  { id: 5, title: 'Follow up with Berlin contacts',     dueDate: new Date(2026, 3, 23), assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'todo' },
+  { id: 6, title: 'Update CRM with Berlin contacts',    dueDate: new Date(2026, 2, 1),  assigneeAvatar: 'https://i.pravatar.cc/150?img=44', status: 'done' },
+  { id: 7, title: 'Book flights for SF summit',         dueDate: new Date(2026, 2, 1),  assigneeAvatar: 'https://i.pravatar.cc/150?img=12', status: 'done' },
 ]
 
-// ─── Tab types ────────────────────────────────────────────────────────────────
+let nextId = 100
 
-type TaskTab = 'my' | 'all' | 'john' | 'overdue'
+// ─── Priority icon ────────────────────────────────────────────────────────────
 
-const TABS: { key: TaskTab; label: string }[] = [
-  { key: 'my',      label: 'My tasks' },
-  { key: 'all',     label: 'All task' },
-  { key: 'john',    label: "John's task" },
-  { key: 'overdue', label: "Team's overdue" },
-]
-
-// ─── Column widths ────────────────────────────────────────────────────────────
-
-const COL_NAME     = 280
-const COL_DUE      = 120
-const COL_ASSIGNEE = 160
-const COL_RECORD   = 160
-
-// ─── Record icon ──────────────────────────────────────────────────────────────
-
-function RecordIcon({ type }: { type: RecordRef['type'] }) {
-  if (type === 'company') {
+function PriorityIcon({ priority }: { priority: Priority }) {
+  if (priority === 'urgent') {
     return (
-      <div style={{
-        width: 16, height: 16, borderRadius: 4, background: '#1a56db',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-      }}>
-        <Icon name="business" size={10} style={{ color: 'white' }} />
-      </div>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+        <rect x="1" y="1" width="14" height="14" rx="3" fill="#202020" />
+        <text x="8" y="12" textAnchor="middle" fill="white" fontSize="10" fontWeight="700" fontFamily="Inter, sans-serif">!</text>
+      </svg>
     )
   }
-  if (type === 'deal') {
-    return <Icon name="handshake" size={14} style={{ color: 'rgba(0,0,0,0.4)', flexShrink: 0 }} />
+  if (priority === 'high') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+        <rect x="1.5" y="8"  width="3" height="6"  fill="#626262" />
+        <rect x="6.5" y="5"  width="3" height="9"  fill="#626262" />
+        <rect x="11.5" y="2" width="3" height="12" fill="#626262" />
+      </svg>
+    )
   }
-  return <Icon name="account_circle" size={14} style={{ color: 'rgba(0,0,0,0.4)', flexShrink: 0 }} />
+  if (priority === 'medium') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+        <rect x="1.5" y="8"  width="3" height="6"  fill="#626262" />
+        <rect x="6.5" y="5"  width="3" height="9"  fill="#626262" />
+        <rect x="11.5" y="2" width="3" height="12" fill="#e1e1e1" />
+      </svg>
+    )
+  }
+  if (priority === 'low') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+        <rect x="1.5" y="8"  width="3" height="6"  fill="#626262" />
+        <rect x="6.5" y="5"  width="3" height="9"  fill="#e1e1e1" />
+        <rect x="11.5" y="2" width="3" height="12" fill="#e1e1e1" />
+      </svg>
+    )
+  }
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+      <circle cx="3.5"  cy="8" r="1.5" fill="rgba(0,0,0,0.3)" />
+      <circle cx="8"    cy="8" r="1.5" fill="rgba(0,0,0,0.3)" />
+      <circle cx="12.5" cy="8" r="1.5" fill="rgba(0,0,0,0.3)" />
+    </svg>
+  )
 }
 
-// ─── Sub picker (time / repeat / reminder) ────────────────────────────────────
+// ─── Sub picker ───────────────────────────────────────────────────────────────
 
 function SubPicker({ options, current, anchorRect, onSelect, onClose }: {
   options: string[]
@@ -285,7 +284,6 @@ function DatePicker({
         }}
         onMouseDown={e => e.stopPropagation()}
       >
-        {/* Quick picks */}
         <div style={{ display: 'flex', gap: 8, padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.12)', flexWrap: 'wrap', background: '#f9f9f9' }}>
           {quickPicks.map(q => (
             <button
@@ -302,8 +300,6 @@ function DatePicker({
             >{q.label}</button>
           ))}
         </div>
-
-        {/* Month nav */}
         <div style={{ display: 'flex', alignItems: 'center', padding: '10px 12px 6px' }}>
           <button
             onClick={() => setViewMonth(new Date(year, month - 1, 1))}
@@ -323,15 +319,11 @@ function DatePicker({
             <Icon name="chevron_right" size={16} style={{ color: 'rgba(0,0,0,0.61)' }} />
           </button>
         </div>
-
-        {/* DOW header */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', padding: '0 12px', marginBottom: 2 }}>
           {DOW_LABELS.map(d => (
             <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 500, color: 'rgba(0,0,0,0.4)', paddingBottom: 4 }}>{d}</div>
           ))}
         </div>
-
-        {/* Calendar grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', padding: '0 12px 12px', gap: 2 }}>
           {cells.map((cell, i) => {
             const isCurrentM = cell.getMonth() === month
@@ -356,8 +348,6 @@ function DatePicker({
             )
           })}
         </div>
-
-        {/* Footer: Time / Remind me / Repeat */}
         <div style={{ borderTop: '1px solid rgba(0,0,0,0.08)', padding: '4px 4px' }}>
           {([
             { icon: 'schedule',      value: time,     defaultLabel: '9 AM',      onOpen: setTimeAnchor,     onClear: () => onTimeChange(null),     noClear: true },
@@ -387,19 +377,9 @@ function DatePicker({
           ))}
         </div>
       </div>
-
-      {timeAnchor && (
-        <SubPicker options={TIME_OPTIONS} current={time} anchorRect={timeAnchor}
-          onSelect={v => onTimeChange(v)} onClose={() => setTimeAnchor(null)} />
-      )}
-      {repeatAnchor && (
-        <SubPicker options={REPEAT_OPTIONS} current={repeat} anchorRect={repeatAnchor}
-          onSelect={v => onRepeatChange(v)} onClose={() => setRepeatAnchor(null)} />
-      )}
-      {reminderAnchor && (
-        <SubPicker options={REMINDER_OPTIONS} current={reminder} anchorRect={reminderAnchor}
-          onSelect={v => onReminderChange(v)} onClose={() => setReminderAnchor(null)} />
-      )}
+      {timeAnchor     && <SubPicker options={TIME_OPTIONS}     current={time}     anchorRect={timeAnchor}     onSelect={v => onTimeChange(v)}     onClose={() => setTimeAnchor(null)} />}
+      {repeatAnchor   && <SubPicker options={REPEAT_OPTIONS}   current={repeat}   anchorRect={repeatAnchor}   onSelect={v => onRepeatChange(v)}   onClose={() => setRepeatAnchor(null)} />}
+      {reminderAnchor && <SubPicker options={REMINDER_OPTIONS} current={reminder} anchorRect={reminderAnchor} onSelect={v => onReminderChange(v)} onClose={() => setReminderAnchor(null)} />}
     </>,
     document.body
   )
@@ -424,7 +404,7 @@ function AssigneePicker({ current, anchorRect, onSelect, onClose }: {
           position: 'fixed', top: anchorRect.bottom + 6, left: anchorRect.left,
           zIndex: 1002, width: 240, background: 'white', borderRadius: 8,
           border: '1px solid rgba(141,141,141,0.24)',
-          boxShadow: '0px 9px 24px rgba(24,26,27,0.16), 0px 3px 6px rgba(24,26,27,0.08), 0px 0px 1px rgba(24,26,27,0.04)',
+          boxShadow: '0px 9px 24px rgba(24,26,27,0.16), 0px 3px 6px rgba(24,26,27,0.08)',
           overflow: 'hidden',
         }}
         onMouseDown={e => e.stopPropagation()}
@@ -487,350 +467,355 @@ function AssigneePicker({ current, anchorRect, onSelect, onClose }: {
   )
 }
 
-// ─── Record picker ────────────────────────────────────────────────────────────
+// ─── Priority picker ──────────────────────────────────────────────────────────
 
-function RecordPicker({ current, anchorRect, onSelect, onClose }: {
-  current: RecordRef
+function PriorityPicker({ current, anchorRect, onSelect, onClose }: {
+  current: Priority
   anchorRect: DOMRect
-  onSelect: (r: RecordRef) => void
+  onSelect: (p: Priority) => void
   onClose: () => void
 }) {
-  const [search, setSearch] = useState('')
-  const filtered = RECORDS.filter(r => r.name.toLowerCase().includes(search.toLowerCase()))
-
-  const groups: { type: RecordRef['type']; label: string }[] = [
-    { type: 'person',  label: 'People' },
-    { type: 'company', label: 'Companies' },
-    { type: 'deal',    label: 'Deals' },
-  ]
+  const spaceRight = window.innerWidth - anchorRect.right - 8
+  const left = spaceRight >= 240 ? anchorRect.left : anchorRect.right - 240
+  const top  = anchorRect.bottom + 6
 
   return createPortal(
     <>
       <div style={{ position: 'fixed', inset: 0, zIndex: 1001 }} onMouseDown={onClose} />
       <div
         style={{
-          position: 'fixed', top: anchorRect.bottom + 6, left: anchorRect.left,
-          zIndex: 1002, width: 240, background: 'white', borderRadius: 8,
-          border: '1px solid rgba(141,141,141,0.24)',
-          boxShadow: '0px 9px 24px rgba(24,26,27,0.16), 0px 3px 6px rgba(24,26,27,0.08), 0px 0px 1px rgba(24,26,27,0.04)',
-          overflow: 'hidden', maxHeight: 320, overflowY: 'auto',
+          position: 'fixed', top, left, zIndex: 1002, width: 240,
+          background: 'white', borderRadius: 8,
+          border: '1px solid rgba(0,0,0,0.12)',
+          boxShadow: '0px 8px 24px rgba(0,0,0,0.12)',
+          overflow: 'hidden',
         }}
         onMouseDown={e => e.stopPropagation()}
       >
-        <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: 8, position: 'sticky', top: 0, background: 'white' }}>
-          <Icon name="search" size={14} style={{ color: 'rgba(0,0,0,0.3)', flexShrink: 0 }} />
-          <input
-            autoFocus
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search records..."
-            onKeyDown={e => e.key === 'Escape' && onClose()}
-            style={{ border: 'none', outline: 'none', padding: 0, flex: 1, fontFamily: 'inherit', fontSize: 13, color: '#202020', background: 'transparent' }}
-          />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px 6px', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+          <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.4)', fontWeight: 400 }}>Change priority to...</span>
         </div>
-        {groups.map(g => {
-          const items = filtered.filter(r => r.type === g.type)
-          if (!items.length) return null
-          return (
-            <div key={g.type}>
-              <div style={{ padding: '6px 12px 2px', fontSize: 11, fontWeight: 500, color: 'rgba(0,0,0,0.4)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                {g.label}
-              </div>
-              {items.map(r => (
-                <button
-                  key={r.name}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', height: 32, paddingLeft: 12, paddingRight: 12, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                  onClick={() => { onSelect(r); onClose() }}
-                >
-                  <RecordIcon type={r.type} />
-                  <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: '#202020', letterSpacing: '-0.04px' }}>{r.name}</span>
-                  {current.type === r.type && current.name === r.name && (
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                      <path d="M2 7L5.5 10.5L12 3.5" stroke="rgba(0,0,0,0.61)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </button>
-              ))}
-            </div>
-          )
-        })}
+        {PRIORITY_OPTIONS.map(opt => (
+          <button
+            key={opt.value}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', height: 32, paddingLeft: 12, paddingRight: 12, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            onClick={() => { onSelect(opt.value); onClose() }}
+          >
+            <PriorityIcon priority={opt.value} />
+            <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.04px' }}>{opt.label}</span>
+            {current === opt.value && (
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ marginRight: 8 }}>
+                <path d="M2 7L5.5 10.5L12 3.5" stroke="rgba(0,0,0,0.61)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </button>
+        ))}
       </div>
     </>,
     document.body
   )
 }
 
-// ─── Header cell ──────────────────────────────────────────────────────────────
+// ─── Toggle switch ────────────────────────────────────────────────────────────
 
-function HeaderCell({ label, flex, width, last, first }: {
-  label: string; flex?: boolean; width?: number; last?: boolean; first?: boolean
-}) {
+function ToggleSwitch({ on }: { on: boolean }) {
   return (
-    <div style={{
-      flex: flex ? 1 : undefined,
-      width: flex ? undefined : width,
-      minWidth: flex ? 0 : width,
-      maxWidth: flex ? undefined : width,
-      flexShrink: flex ? 1 : 0,
-      display: 'flex', alignItems: 'center',
-      height: '100%',
-      borderRight: last ? 'none' : '1px solid rgba(0,0,0,0.08)',
-      paddingLeft: first ? 0 : 12,
-      paddingRight: 12,
-    }}>
-      <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.4)', fontWeight: 400, letterSpacing: '-0.04px' }}>
-        {label}
-      </span>
+    <div style={{ width: 28, height: 16, borderRadius: 100, flexShrink: 0, background: on ? '#202020' : 'rgba(0,0,0,0.2)', position: 'relative', transition: 'background 0.15s' }}>
+      <div style={{ position: 'absolute', width: 12, height: 12, borderRadius: '50%', background: 'white', top: 2, left: on ? 14 : 2, transition: 'left 0.15s' }} />
     </div>
+  )
+}
+
+// ─── Pill style ───────────────────────────────────────────────────────────────
+
+const pillStyle: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: 6,
+  height: 28, paddingLeft: 8, paddingRight: 10,
+  background: 'white', border: '1px solid #bbb', borderRadius: 100,
+  boxShadow: '0px 1px 1px 0px rgba(0,0,0,0.06)',
+  cursor: 'pointer',
+  fontFamily: 'inherit', fontSize: 12, fontWeight: 500, color: '#202020',
+  whiteSpace: 'nowrap',
+}
+
+// ─── New task form (modal) ────────────────────────────────────────────────────
+
+function NewTaskForm({ onClose, onCreate }: {
+  onClose: () => void
+  onCreate: (task: Omit<Task, 'id'>) => void
+}) {
+  const [title,      setTitle]      = useState('')
+  const [priority,   setPriority]   = useState<Priority>('none')
+  const [assignee,   setAssignee]   = useState<AssigneeOption>(ASSIGNEES[0])
+  const [dueDate,    setDueDate]    = useState<Date | null>(null)
+  const [createMore, setCreateMore] = useState(false)
+  const [time,       setTime]       = useState<string | null>(null)
+  const [repeat,     setRepeat]     = useState<string | null>(null)
+  const [reminder,   setReminder]   = useState<string | null>(null)
+
+  const [priorityAnchor, setPriorityAnchor] = useState<DOMRect | null>(null)
+  const [assigneeAnchor, setAssigneeAnchor] = useState<DOMRect | null>(null)
+  const [dateAnchor,     setDateAnchor]     = useState<DOMRect | null>(null)
+
+  const titleRef = useRef<HTMLInputElement>(null)
+  useEffect(() => { titleRef.current?.focus() }, [])
+
+  const priorityLabel = priority === 'none' ? 'No prio' : priority.charAt(0).toUpperCase() + priority.slice(1)
+
+  function handleCreate() {
+    if (!title.trim()) return
+    onCreate({
+      title: title.trim(),
+      dueDate,
+      assigneeAvatar: assignee.avatar ?? 'https://i.pravatar.cc/150?img=44',
+      status: 'todo',
+      priority,
+    })
+    if (createMore) {
+      setTitle(''); setPriority('none'); setAssignee(ASSIGNEES[0]); setDueDate(null)
+      setTime(null); setRepeat(null); setReminder(null)
+      titleRef.current?.focus()
+    } else {
+      onClose()
+    }
+  }
+
+  return createPortal(
+    <>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.32)' }} onMouseDown={onClose} />
+      <div
+        style={{
+          position: 'fixed', top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 1000, width: 576,
+          background: 'white', border: '1px solid #e1e1e1', overflow: 'hidden',
+          boxShadow: '0px 9px 24px 0px rgba(24,26,27,0.16), 0px 3px 6px 0px rgba(24,26,27,0.08), 0px 0px 1px 0px rgba(24,26,27,0.04)',
+        }}
+        onMouseDown={e => e.stopPropagation()}
+        onKeyDown={e => {
+          if (e.key === 'Escape') { e.stopPropagation(); onClose() }
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleCreate()
+        }}
+      >
+        <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 40 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <input
+              ref={titleRef}
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="Task title"
+              style={{
+                border: 'none', outline: 'none', padding: 0, width: '100%',
+                fontFamily: 'inherit', fontSize: 20, fontWeight: 500, lineHeight: '24px',
+                color: '#202020', background: 'transparent',
+              }}
+            />
+            <input
+              placeholder="Add description..."
+              style={{
+                border: 'none', outline: 'none', padding: 0, width: '100%',
+                fontFamily: 'inherit', fontSize: 13, fontWeight: 400, lineHeight: '18px',
+                letterSpacing: '-0.04px', color: '#8c8c8c', background: 'transparent',
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button style={pillStyle} onClick={e => setPriorityAnchor(e.currentTarget.getBoundingClientRect())}>
+              <PriorityIcon priority={priority} />
+              <span>{priorityLabel}</span>
+            </button>
+            <button style={pillStyle} onClick={e => setAssigneeAnchor(e.currentTarget.getBoundingClientRect())}>
+              {assignee.id === 'none' ? (
+                <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon name="account_circle" size={12} style={{ color: 'rgba(0,0,0,0.4)' }} />
+                </div>
+              ) : assignee.avatar ? (
+                <img src={assignee.avatar} alt="" style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0 }} />
+              ) : (
+                <div style={{ width: 16, height: 16, borderRadius: '50%', background: assignee.color || '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 9, fontWeight: 700, color: 'white' }}>
+                  {assignee.initials}
+                </div>
+              )}
+              <span>{assignee.id === 'none' ? 'Assignee' : assignee.name}</span>
+            </button>
+            <button style={pillStyle} onClick={e => setDateAnchor(e.currentTarget.getBoundingClientRect())}>
+              <Icon name="calendar_today" size={14} style={{ color: 'rgba(0,0,0,0.61)', flexShrink: 0 }} />
+              <span>{dueDate ? formatDueDate(dueDate) : 'Date'}</span>
+            </button>
+          </div>
+        </div>
+        <div style={{ borderTop: '1px solid #e1e1e1', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
+          <button onClick={() => setCreateMore(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+            <ToggleSwitch on={createMore} />
+            <span style={{ fontSize: 12, fontWeight: 400, color: '#626262' }}>Create more</span>
+          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={onClose}
+              style={{ height: 28, paddingLeft: 12, paddingRight: 12, background: 'white', border: '1px solid rgba(0,0,0,0.12)', borderRadius: 100, fontFamily: 'inherit', fontSize: 13, fontWeight: 500, letterSpacing: '-0.04px', color: 'rgba(0,0,0,0.61)', cursor: 'pointer' }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreate}
+              style={{ height: 28, paddingLeft: 12, paddingRight: 12, background: title.trim() ? '#202020' : 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 100, fontFamily: 'inherit', fontSize: 13, fontWeight: 500, letterSpacing: '-0.04px', color: title.trim() ? 'white' : 'rgba(0,0,0,0.3)', cursor: title.trim() ? 'pointer' : 'default' }}
+            >
+              Create task
+            </button>
+          </div>
+        </div>
+      </div>
+      {priorityAnchor && (
+        <PriorityPicker current={priority} anchorRect={priorityAnchor}
+          onSelect={p => { setPriority(p); setPriorityAnchor(null) }} onClose={() => setPriorityAnchor(null)} />
+      )}
+      {assigneeAnchor && (
+        <AssigneePicker current={assignee.id} anchorRect={assigneeAnchor}
+          onSelect={a => setAssignee(a)} onClose={() => setAssigneeAnchor(null)} />
+      )}
+      {dateAnchor && (
+        <DatePicker
+          current={dueDate} anchorRect={dateAnchor}
+          onSelect={d => setDueDate(d)} onClose={() => setDateAnchor(null)}
+          time={time} onTimeChange={setTime}
+          repeat={repeat} onRepeatChange={setRepeat}
+          reminder={reminder} onReminderChange={setReminder}
+        />
+      )}
+    </>,
+    document.body
   )
 }
 
 // ─── Task row ─────────────────────────────────────────────────────────────────
 
-function TaskRow({ task, onToggle, onUpdate }: {
-  task: Task
-  onToggle: (id: number) => void
-  onUpdate: (id: number, changes: Partial<Task>) => void
-}) {
+function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: number) => void }) {
   const [hovered, setHovered] = useState(false)
-  const [dateAnchor,     setDateAnchor]     = useState<DOMRect | null>(null)
-  const [assigneeAnchor, setAssigneeAnchor] = useState<DOMRect | null>(null)
-  const [recordAnchor,   setRecordAnchor]   = useState<DOMRect | null>(null)
-  const [editingDesc, setEditingDesc] = useState(false)
-  const [descDraft,   setDescDraft]   = useState(task.description)
-
-  const done    = task.status === 'done'
-  const overdue = isOverdue(task.dueDate) && !done
-  const assignee = getAssignee(task.assigneeId)
-
-  function commitDesc() {
-    onUpdate(task.id, { description: descDraft })
-    setEditingDesc(false)
-  }
+  const group = getGroup(task)
+  const done  = group === 'completed'
 
   return (
     <div
       style={{
-        display: 'flex', alignItems: 'center',
-        paddingLeft: 16, paddingRight: 16, height: 36,
-        borderBottom: '1px solid rgba(0,0,0,0.06)',
-        background: hovered ? 'rgba(0,0,0,0.015)' : 'transparent',
-        cursor: 'default',
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '5px 16px', cursor: 'pointer',
+        background: hovered ? 'rgba(0,0,0,0.02)' : 'transparent',
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Checkbox */}
       <div
-        style={{ flexShrink: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', marginRight: 10 }}
-        onClick={() => onToggle(task.id)}
+        style={{ flexShrink: 0, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+        onClick={e => { e.stopPropagation(); onToggle(task.id) }}
       >
         {done
           ? <Icon name="check_circle" size={16} style={{ color: 'rgba(0,0,0,0.2)' }} />
-          : <Icon name="radio_button_unchecked" size={16} style={{ color: hovered ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.18)' }} />
+          : <Icon name="radio_button_unchecked" size={16} style={{ color: hovered ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.2)' }} />
         }
       </div>
-
-      {/* Name */}
-      <div style={{
-        width: COL_NAME, flexShrink: 0, minWidth: 0,
-        display: 'flex', alignItems: 'center',
-        height: '100%',
-        borderRight: '1px solid rgba(0,0,0,0.06)',
-        paddingRight: 12,
+      <span style={{
+        flex: 1, minWidth: 0,
+        fontSize: 13, letterSpacing: '-0.04px', lineHeight: '18px',
+        color: done ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.87)',
+        textDecoration: done ? 'line-through' : 'none',
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>
-        <span style={{
-          fontSize: 13, letterSpacing: '-0.04px',
-          color: done ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.87)',
-          textDecoration: done ? 'line-through' : 'none',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {task.title}
-        </span>
-      </div>
+        {task.title}
+      </span>
+      <span style={{ fontSize: 12, flexShrink: 0, color: group === 'overdue' ? '#e5484d' : done ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.4)' }}>
+        {task.dueDate ? formatDueDate(task.dueDate) : ''}
+      </span>
+      <img src={task.assigneeAvatar} alt="" style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0, opacity: done ? 0.35 : 1 }} />
+    </div>
+  )
+}
 
-      {/* Due date */}
-      <div
-        style={{
-          width: COL_DUE, flexShrink: 0,
-          display: 'flex', alignItems: 'center',
-          height: '100%',
-          borderRight: '1px solid rgba(0,0,0,0.06)',
-          paddingLeft: 12, paddingRight: 12,
-          cursor: 'pointer',
-        }}
-        onClick={e => setDateAnchor(e.currentTarget.getBoundingClientRect())}
+// ─── Section header ───────────────────────────────────────────────────────────
+
+function SectionHeader({ label, count, collapsed, onToggle, onAdd }: {
+  label: string
+  count: number
+  collapsed: boolean
+  onToggle: () => void
+  onAdd: () => void
+}) {
+  const [hovered, setHovered] = useState(false)
+
+  return (
+    <div
+      style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '8px 12px 4px', cursor: 'default', borderTop: '1px solid rgba(0,0,0,0.06)' }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <button
+        onClick={onToggle}
+        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, borderRadius: 3, flexShrink: 0 }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.06)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'none')}
       >
-        <span style={{
-          fontSize: 13, letterSpacing: '-0.04px',
-          color: overdue ? '#e5484d' : task.dueDate ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0.2)',
-        }}>
-          {task.dueDate ? formatDueDate(task.dueDate) : 'Date'}
-        </span>
-      </div>
-
-      {/* Assignee */}
-      <div
-        style={{
-          width: COL_ASSIGNEE, flexShrink: 0,
-          display: 'flex', alignItems: 'center', gap: 6,
-          height: '100%',
-          borderRight: '1px solid rgba(0,0,0,0.06)',
-          paddingLeft: 12, paddingRight: 12,
-          cursor: 'pointer',
-        }}
-        onClick={e => setAssigneeAnchor(e.currentTarget.getBoundingClientRect())}
-      >
-        {assignee.id === 'none' ? (
-          <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Icon name="account_circle" size={12} style={{ color: 'rgba(0,0,0,0.3)' }} />
-          </div>
-        ) : assignee.avatar ? (
-          <img src={assignee.avatar} alt="" style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0 }} />
-        ) : (
-          <div style={{
-            width: 16, height: 16, borderRadius: '50%',
-            background: assignee.color || '#e5e7eb', flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 8, fontWeight: 700, color: 'white',
-          }}>
-            {(assignee.initials || assignee.name).charAt(0)}
-          </div>
-        )}
-        <span style={{ fontSize: 13, letterSpacing: '-0.04px', color: assignee.id === 'none' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.87)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {assignee.name}
-        </span>
-      </div>
-
-      {/* Record */}
-      <div
-        style={{
-          width: COL_RECORD, flexShrink: 0,
-          display: 'flex', alignItems: 'center', gap: 6,
-          height: '100%',
-          borderRight: '1px solid rgba(0,0,0,0.06)',
-          paddingLeft: 12, paddingRight: 12,
-          cursor: 'pointer',
-        }}
-        onClick={e => setRecordAnchor(e.currentTarget.getBoundingClientRect())}
-      >
-        <RecordIcon type={task.record.type} />
-        <span style={{ fontSize: 13, letterSpacing: '-0.04px', color: 'rgba(0,0,0,0.87)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {task.record.name}
-        </span>
-      </div>
-
-      {/* Description */}
-      <div
-        style={{
-          flex: 1, minWidth: 0,
-          display: 'flex', alignItems: 'center',
-          height: '100%',
-          paddingLeft: 12,
-          cursor: 'text',
-        }}
-        onClick={() => { if (!editingDesc) { setDescDraft(task.description); setEditingDesc(true) } }}
-      >
-        {editingDesc ? (
-          <input
-            autoFocus
-            value={descDraft}
-            onChange={e => setDescDraft(e.target.value)}
-            onBlur={commitDesc}
-            onKeyDown={e => {
-              if (e.key === 'Enter') commitDesc()
-              if (e.key === 'Escape') { setEditingDesc(false); setDescDraft(task.description) }
-            }}
-            style={{
-              width: '100%', border: 'none', outline: 'none', background: 'transparent',
-              fontFamily: 'inherit', fontSize: 13, letterSpacing: '-0.04px',
-              color: 'rgba(0,0,0,0.87)', padding: 0,
-            }}
-          />
-        ) : (
-          <span style={{
-            fontSize: 13, letterSpacing: '-0.04px',
-            color: task.description ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.2)',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
-            {task.description || 'Add a note…'}
-          </span>
-        )}
-      </div>
-
-      {/* Portals */}
-      {dateAnchor && (
-        <DatePicker
-          current={task.dueDate}
-          anchorRect={dateAnchor}
-          onSelect={d => onUpdate(task.id, { dueDate: d })}
-          onClose={() => setDateAnchor(null)}
-          time={task.dueTime}
-          onTimeChange={t => onUpdate(task.id, { dueTime: t })}
-          repeat={null} onRepeatChange={() => {}}
-          reminder={null} onReminderChange={() => {}}
+        <Icon
+          name="chevron_right"
+          size={14}
+          style={{ color: 'rgba(0,0,0,0.4)', transform: collapsed ? 'rotate(0deg)' : 'rotate(90deg)', transition: 'transform 0.15s' }}
         />
-      )}
-      {assigneeAnchor && (
-        <AssigneePicker
-          current={task.assigneeId}
-          anchorRect={assigneeAnchor}
-          onSelect={a => onUpdate(task.id, { assigneeId: a.id })}
-          onClose={() => setAssigneeAnchor(null)}
-        />
-      )}
-      {recordAnchor && (
-        <RecordPicker
-          current={task.record}
-          anchorRect={recordAnchor}
-          onSelect={r => onUpdate(task.id, { record: r })}
-          onClose={() => setRecordAnchor(null)}
-        />
-      )}
+      </button>
+      <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.04px' }}>{label}</span>
+      <span style={{ fontSize: 13, color: 'rgba(0,0,0,0.4)', letterSpacing: '-0.04px' }}>{count}</span>
+      <button
+        onClick={onAdd}
+        style={{
+          marginLeft: 'auto', background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: 20, height: 20, borderRadius: 4,
+          opacity: hovered ? 1 : 0, transition: 'opacity 0.1s',
+        }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.06)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+      >
+        <Icon name="add" size={14} style={{ color: 'rgba(0,0,0,0.5)' }} />
+      </button>
     </div>
   )
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-let nextId = 100
-
 export function TasksPage() {
-  const [activeTab, setActiveTab] = useState<TaskTab>('my')
-  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS)
-  const [newTitle, setNewTitle] = useState('')
-  const [addingInline, setAddingInline] = useState(false)
+  const [activeTab,  setActiveTab]  = useState<TaskTab>('my')
+  const [tasks,      setTasks]      = useState<Task[]>(INITIAL_TASKS)
+  const [showForm,   setShowForm]   = useState(false)
+  const [collapsed,  setCollapsed]  = useState<Record<TaskGroup, boolean>>({
+    overdue: false, today: false, upcoming: false, completed: false,
+  })
 
-  function toggleTask(id: number) {
+  function toggle(id: number) {
     setTasks(prev => prev.map(t =>
-      t.id === id ? { ...t, status: t.status === 'done' ? 'todo' : 'done' } : t
+      t.id === id
+        ? { ...t, status: t.status === 'done' ? 'todo' : 'done' }
+        : t
     ))
   }
 
-  function updateTask(id: number, changes: Partial<Task>) {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, ...changes } : t))
+  function createTask(task: Omit<Task, 'id'>) {
+    setTasks(prev => [{ id: nextId++, ...task }, ...prev])
   }
 
-  function createInline() {
-    if (!newTitle.trim()) { setAddingInline(false); return }
-    setTasks(prev => [...prev, {
-      id: nextId++,
-      title: newTitle.trim(),
-      dueDate: null, dueTime: null,
-      assigneeId: '1',
-      status: 'todo',
-      record: { type: 'person', name: 'John Doe' },
-      description: '',
-    }])
-    setNewTitle('')
-    setAddingInline(false)
+  function toggleCollapse(group: TaskGroup) {
+    setCollapsed(prev => ({ ...prev, [group]: !prev[group] }))
   }
 
   const displayed = activeTab === 'overdue'
-    ? tasks.filter(t => isOverdue(t.dueDate) && t.status !== 'done')
+    ? tasks.filter(t => getGroup(t) === 'overdue')
     : tasks
+
+  const grouped = {
+    overdue:   displayed.filter(t => getGroup(t) === 'overdue'),
+    today:     displayed.filter(t => getGroup(t) === 'today'),
+    upcoming:  displayed.filter(t => getGroup(t) === 'upcoming'),
+    completed: displayed.filter(t => getGroup(t) === 'completed'),
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', background: 'white' }}>
@@ -839,35 +824,26 @@ export function TasksPage() {
       <div style={{
         display: 'flex', alignItems: 'center', flexShrink: 0,
         padding: '0 20px', height: 52,
-        borderBottom: '1px solid rgba(0,0,0,0.08)',
+        borderBottom: '1px solid rgba(0,0,0,0.12)',
       }}>
         <span style={{ fontSize: 18, fontWeight: 600, color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.3px' }}>
           Tasks
         </span>
-        <button
-          onClick={() => setAddingInline(true)}
-          style={{
-            marginLeft: 'auto',
-            height: 28, paddingLeft: 12, paddingRight: 12,
-            background: 'rgba(0,0,0,0.87)', color: 'white',
-            border: 'none', borderRadius: 100,
-            fontSize: 12, fontWeight: 500, cursor: 'pointer', letterSpacing: '-0.04px',
-            fontFamily: 'inherit',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.72)')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.87)')}
-        >
-          New task
-        </button>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <ActionBtn icon="filter_list" />
+          <ActionBtn icon="swap_vert" />
+          <ActionBtn icon="search" />
+          <ActionBtn icon="add" label="New task" onClick={() => setShowForm(true)} />
+        </div>
       </div>
 
       {/* ── Tab bar ── */}
       <div style={{
         display: 'flex', alignItems: 'center', flexShrink: 0,
         borderBottom: '1px solid rgba(0,0,0,0.08)',
-        paddingLeft: 20, paddingRight: 20, height: 38,
+        paddingLeft: 12, paddingRight: 20, height: 38,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 0, flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
           {TABS.map(tab => (
             <button
               key={tab.key}
@@ -886,91 +862,43 @@ export function TasksPage() {
             </button>
           ))}
           <button
-            style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', borderRadius: 4, marginLeft: 4 }}
+            style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', borderRadius: 4, marginLeft: 2 }}
             onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'none')}
           >
             <Icon name="add" size={14} style={{ color: 'rgba(0,0,0,0.45)' }} />
           </button>
         </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          {(['filter_list', 'swap_vert', 'search'] as const).map(icon => (
-            <button
-              key={icon}
-              style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', borderRadius: 4 }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-            >
-              <Icon name={icon} size={14} style={{ color: 'rgba(0,0,0,0.45)' }} />
-            </button>
-          ))}
-        </div>
       </div>
 
-      {/* ── Table ── */}
+      {/* ── Task list ── */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
-
-        {/* Column headers */}
-        <div style={{
-          display: 'flex', alignItems: 'center',
-          borderBottom: '1px solid rgba(0,0,0,0.08)',
-          paddingLeft: 42, paddingRight: 16,
-          height: 34, flexShrink: 0,
-        }}>
-          <HeaderCell label="Name" width={COL_NAME} first />
-          <HeaderCell label="Due date" width={COL_DUE} />
-          <HeaderCell label="Assignee" width={COL_ASSIGNEE} />
-          <HeaderCell label="Record" width={COL_RECORD} />
-          <HeaderCell label="Description" flex last />
-        </div>
-
-        {/* Rows */}
-        {displayed.map(task => (
-          <TaskRow key={task.id} task={task} onToggle={toggleTask} onUpdate={updateTask} />
-        ))}
-
-        {/* Inline add row */}
-        {addingInline ? (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            paddingLeft: 16, paddingRight: 16, height: 36,
-            borderBottom: '1px solid rgba(0,0,0,0.06)',
-          }}>
-            <div style={{ width: 16, height: 16, flexShrink: 0 }} />
-            <input
-              autoFocus
-              value={newTitle}
-              onChange={e => setNewTitle(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') createInline()
-                if (e.key === 'Escape') { setAddingInline(false); setNewTitle('') }
-              }}
-              onBlur={createInline}
-              placeholder="New task title..."
-              style={{
-                flex: 1, border: 'none', outline: 'none', background: 'transparent',
-                fontFamily: 'inherit', fontSize: 13, color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.04px',
-              }}
-            />
-          </div>
-        ) : (
-          <button
-            onClick={() => setAddingInline(true)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              paddingLeft: 16, paddingTop: 8, paddingBottom: 8,
-              background: 'none', border: 'none', cursor: 'pointer',
-              fontFamily: 'inherit', fontSize: 13, color: 'rgba(0,0,0,0.4)', letterSpacing: '-0.04px',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.color = 'rgba(0,0,0,0.61)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(0,0,0,0.4)')}
-          >
-            <Icon name="add" size={14} style={{ color: 'inherit' }} />
-            <span>New task</span>
-          </button>
-        )}
+        {SECTIONS.map(section => {
+          const items = grouped[section.key]
+          return (
+            <div key={section.key}>
+              <SectionHeader
+                label={section.label}
+                count={items.length}
+                collapsed={collapsed[section.key]}
+                onToggle={() => toggleCollapse(section.key)}
+                onAdd={() => setShowForm(true)}
+              />
+              {!collapsed[section.key] && items.map(task => (
+                <TaskRow key={task.id} task={task} onToggle={toggle} />
+              ))}
+            </div>
+          )
+        })}
       </div>
+
+      {/* ── New task modal ── */}
+      {showForm && (
+        <NewTaskForm
+          onClose={() => setShowForm(false)}
+          onCreate={task => { createTask(task); setShowForm(false) }}
+        />
+      )}
     </div>
   )
 }

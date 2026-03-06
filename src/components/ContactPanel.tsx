@@ -1,4 +1,4 @@
-import { Icon } from '../folk'
+import { ActionBtn } from './ActionBtn'
 
 function Field({ label, value, isLink }: { label: string; value: string; isLink?: boolean }) {
   return (
@@ -16,34 +16,6 @@ function Field({ label, value, isLink }: { label: string; value: string; isLink?
         {value}
       </span>
     </div>
-  )
-}
-
-function ActionBtn({ icon, label }: { icon?: string; label?: string }) {
-  const isIconOnly = icon && !label
-  return (
-    <button
-      className="flex items-center cursor-pointer flex-shrink-0"
-      style={{
-        gap: 6,
-        border: '1px solid rgba(0,0,0,0.27)',
-        background: 'white',
-        color: 'rgba(0,0,0,0.87)',
-        fontSize: 13,
-        fontWeight: 500,
-        letterSpacing: '-0.04px',
-        borderRadius: 100,
-        boxShadow: '0px 1px 1px 0px rgba(0,0,0,0.06)',
-        height: 28,
-        paddingLeft: isIconOnly ? 7 : 8,
-        paddingRight: isIconOnly ? 7 : 10,
-      }}
-      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.02)')}
-      onMouseLeave={e => (e.currentTarget.style.background = 'white')}
-    >
-      {icon && <Icon name={icon} size={14} style={{ color: 'rgba(0,0,0,0.61)' }} />}
-      {label && <span>{label}</span>}
-    </button>
   )
 }
 
