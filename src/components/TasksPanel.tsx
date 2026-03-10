@@ -778,93 +778,93 @@ function NewTaskForm({
 
 function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: number) => void }) {
   const [hovered, setHovered] = useState(false)
-  const done = task.group === 'completed'
+  const done = task.status === 'done'
 
   return (
     <div
       style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        padding: '5px 16px', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', gap: 4,
+        paddingLeft: 8, paddingRight: 24, paddingTop: 8, paddingBottom: 8,
+        cursor: 'pointer',
         background: hovered ? 'rgba(0,0,0,0.02)' : 'transparent',
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
+      {/* Status icon */}
       <div
         style={{ flexShrink: 0, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
         onClick={e => { e.stopPropagation(); onToggle(task.id) }}
       >
         {done
-          ? <Icon name="check_circle" size={16} style={{ color: 'rgba(0,0,0,0.2)' }} />
+          ? <Icon name="check_circle" size={16} style={{ color: 'rgba(0,0,0,0.25)' }} />
           : <Icon name="radio_button_unchecked" size={16} style={{ color: hovered ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.2)' }} />
         }
       </div>
+      {/* Title */}
       <span style={{
         flex: 1, minWidth: 0,
-        fontSize: 13, letterSpacing: '-0.04px', lineHeight: '18px',
-        color: done ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.87)',
+        fontSize: 13, fontWeight: 500, letterSpacing: '-0.04px', lineHeight: '19px',
+        color: '#202020', opacity: done ? 0.5 : 1,
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>
         {task.title}
       </span>
-      <span style={{ fontSize: 12, flexShrink: 0, color: task.overdue ? '#e5484d' : done ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.4)' }}>
-        {task.dueDate}
-      </span>
-      <img src={task.assigneeAvatar} style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0, opacity: done ? 0.35 : 1 }} />
+      {/* Right: date + avatar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, opacity: done ? 0.5 : 1 }}>
+        <span style={{
+          fontSize: 12, fontWeight: 500, letterSpacing: '-0.04px', whiteSpace: 'nowrap',
+          color: (!done && task.overdue) ? '#e5484d' : done ? '#626262' : 'rgba(0,0,0,0.4)',
+        }}>
+          {task.dueDate}
+        </span>
+        <img src={task.assigneeAvatar} alt="" style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0 }} />
+      </div>
     </div>
   )
 }
 
 // ─── Section header ───────────────────────────────────────────────────────────
 
-function SectionHeader({ label, count, collapsed, onToggle, onAdd }: {
+function SectionHeader({ label, count, collapsed, onToggle, onAdd, showAdd = true }: {
   label: string
   count: number
   collapsed: boolean
   onToggle: () => void
   onAdd: () => void
+  showAdd?: boolean
 }) {
-  const [hovered, setHovered] = useState(false)
-
   return (
-    <div
-      style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '8px 12px 4px', cursor: 'default', borderTop: '1px solid rgba(0,0,0,0.06)' }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      {/* Collapse chevron */}
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px 8px', flexShrink: 0 }}>
       <button
         onClick={onToggle}
-        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, borderRadius: 3, flexShrink: 0 }}
-        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.06)')}
-        onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+        style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
       >
+        <span style={{ fontFamily: "'Uxum Grotesque', Inter, sans-serif", fontSize: 20, fontWeight: 500, lineHeight: '24px', color: 'rgba(0,0,0,0.87)', whiteSpace: 'nowrap' }}>
+          {label}
+        </span>
+        <span style={{ fontSize: 13, fontWeight: 500, lineHeight: '18px', color: '#8c8c8c', letterSpacing: '-0.04px' }}>
+          {count}
+        </span>
         <Icon
-          name="chevron_right"
-          size={14}
-          style={{ color: 'rgba(0,0,0,0.4)', transform: collapsed ? 'rotate(0deg)' : 'rotate(90deg)', transition: 'transform 0.15s' }}
+          name="expand_more"
+          size={16}
+          style={{ color: 'rgba(0,0,0,0.61)', transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.15s', flexShrink: 0 }}
         />
       </button>
-
-      {/* Label */}
-      <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.04px' }}>{label}</span>
-
-      {/* Count */}
-      <span style={{ fontSize: 13, color: 'rgba(0,0,0,0.4)', letterSpacing: '-0.04px' }}>{count}</span>
-
-      {/* + add button — visible on hover */}
       <button
         onClick={onAdd}
         style={{
-          marginLeft: 'auto', background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          width: 20, height: 20, borderRadius: 4,
-          opacity: hovered ? 1 : 0, transition: 'opacity 0.1s',
+          height: 28, paddingLeft: 10, paddingRight: 10,
+          background: '#202020', color: 'white', border: 'none',
+          borderRadius: 100, fontSize: 13, fontWeight: 500, lineHeight: '19px',
+          letterSpacing: '-0.04px', cursor: 'pointer', fontFamily: 'inherit',
+          opacity: showAdd ? 1 : 0, pointerEvents: showAdd ? 'auto' : 'none',
         }}
-        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.06)')}
-        onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+        onMouseEnter={e => { if (showAdd) e.currentTarget.style.background = 'rgba(0,0,0,0.75)' }}
+        onMouseLeave={e => { if (showAdd) e.currentTarget.style.background = '#202020' }}
       >
-        <Icon name="add" size={14} style={{ color: 'rgba(0,0,0,0.5)' }} />
+        New task
       </button>
     </div>
   )
@@ -874,40 +874,23 @@ function SectionHeader({ label, count, collapsed, onToggle, onAdd }: {
 
 type Tab = 'interactions' | 'notes' | 'tasks'
 
-const SECTIONS: { key: TaskGroup; label: string }[] = [
-  { key: 'overdue',   label: 'Overdue' },
-  { key: 'today',     label: 'Today' },
-  { key: 'upcoming',  label: 'Upcoming' },
-  { key: 'completed', label: 'Completed' },
-]
-
 let nextId = 100
 
 export function TasksPanel() {
   const [activeTab, setActiveTab] = useState<Tab>('tasks')
   const [tasks, setTasks]         = useState<Task[]>(INITIAL_TASKS)
   const [addingTo, setAddingTo]   = useState<TaskGroup | null>(null)
-  const [collapsed, setCollapsed] = useState<Record<TaskGroup, boolean>>({
-    overdue: false, today: false, upcoming: false, completed: false,
+  const [collapsed, setCollapsed] = useState<Record<'todo' | 'completed', boolean>>({
+    todo: false, completed: false,
   })
 
-  const grouped = {
-    overdue:   tasks.filter(t => t.group === 'overdue'),
-    today:     tasks.filter(t => t.group === 'today'),
-    upcoming:  tasks.filter(t => t.group === 'upcoming'),
-    completed: tasks.filter(t => t.group === 'completed'),
-  }
-  const todoCount = grouped.overdue.length + grouped.today.length + grouped.upcoming.length
+  const todoTasks = tasks.filter(t => t.status === 'todo')
+  const doneTasks = tasks.filter(t => t.status === 'done')
+  const todoCount = todoTasks.length
 
   function toggle(id: number) {
     setTasks(prev => prev.map(t =>
-      t.id === id
-        ? { ...t,
-            status: t.group === 'completed' ? 'todo' : 'done',
-            group:  t.group === 'completed' ? 'upcoming' : 'completed',
-            overdue: false,
-          }
-        : t
+      t.id === id ? { ...t, status: t.status === 'done' ? 'todo' : 'done' } : t
     ))
   }
 
@@ -915,7 +898,7 @@ export function TasksPanel() {
     setTasks(prev => [{ id: nextId++, ...task }, ...prev])
   }
 
-  function toggleCollapse(group: TaskGroup) {
+  function toggleCollapse(group: 'todo' | 'completed') {
     setCollapsed(prev => ({ ...prev, [group]: !prev[group] }))
   }
 
@@ -951,37 +934,34 @@ export function TasksPanel() {
         ))}
       </div>
 
-      {/* Tasks toolbar */}
-      {activeTab === 'tasks' && (
-        <div style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.08)', flexShrink: 0 }}>
-          <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.3px' }}>Tasks</span>
-          <button
-            onClick={() => setAddingTo('upcoming')}
-            style={{ height: 26, paddingLeft: 12, paddingRight: 12, background: 'rgba(0,0,0,0.87)', color: 'white', border: 'none', borderRadius: 100, fontSize: 12, fontWeight: 500, cursor: 'pointer', letterSpacing: '-0.04px' }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.75)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.87)')}
-          >
-            New task
-          </button>
-        </div>
-      )}
-
       {/* Task list */}
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 16 }}>
-        {activeTab === 'tasks' && SECTIONS.map(section => (
-          <div key={section.key}>
+        {activeTab === 'tasks' && (
+          <>
             <SectionHeader
-              label={section.label}
-              count={grouped[section.key].length}
-              collapsed={collapsed[section.key]}
-              onToggle={() => toggleCollapse(section.key)}
-              onAdd={() => setAddingTo(section.key)}
+              label="Tasks"
+              count={todoCount}
+              collapsed={collapsed.todo}
+              onToggle={() => toggleCollapse('todo')}
+              onAdd={() => setAddingTo('upcoming')}
             />
-            {!collapsed[section.key] && grouped[section.key].map(task => (
+            {!collapsed.todo && todoTasks.map(task => (
               <TaskRow key={task.id} task={task} onToggle={toggle} />
             ))}
-          </div>
-        ))}
+
+            <SectionHeader
+              label="Completed"
+              count={doneTasks.length}
+              collapsed={collapsed.completed}
+              onToggle={() => toggleCollapse('completed')}
+              onAdd={() => setAddingTo('completed')}
+              showAdd={false}
+            />
+            {!collapsed.completed && doneTasks.map(task => (
+              <TaskRow key={task.id} task={task} onToggle={toggle} />
+            ))}
+          </>
+        )}
       </div>
 
       {/* New task modal */}
