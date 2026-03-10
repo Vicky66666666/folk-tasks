@@ -784,7 +784,7 @@ function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: number) => voi
     <div
       style={{
         display: 'flex', alignItems: 'center', gap: 4,
-        paddingLeft: 8, paddingRight: 24, paddingTop: 8, paddingBottom: 8,
+        paddingLeft: 16, paddingRight: 16, paddingTop: 8, paddingBottom: 8,
         cursor: 'pointer',
         background: hovered ? 'rgba(0,0,0,0.02)' : 'transparent',
       }}
@@ -835,7 +835,7 @@ function SectionHeader({ label, count, collapsed, onToggle, onAdd, showAdd = tru
   showAdd?: boolean
 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px 8px', flexShrink: 0 }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 8px', flexShrink: 0 }}>
       <button
         onClick={onToggle}
         style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}

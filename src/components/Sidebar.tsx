@@ -82,12 +82,10 @@ function Divider() {
 export function Sidebar({
   activePage,
   onNotificationsClick,
-  onTasksClick,
   onGroupClick,
 }: {
-  activePage?: 'contact' | 'notifications' | 'tasks'
+  activePage?: 'contact' | 'notifications'
   onNotificationsClick?: () => void
-  onTasksClick?: () => void
   onGroupClick?: () => void
 }) {
   return (
@@ -131,10 +129,7 @@ export function Sidebar({
           <NavItem icon="inbox" label="Inbox" count={6} active={activePage === 'notifications'} />
         </div>
         <NavItem icon="mail" label="Messages" />
-        <div onClick={onTasksClick} style={{ cursor: 'pointer' }}>
-          <NavItem icon="task_alt" label="Tasks" count={6} active={activePage === 'tasks'} />
-        </div>
-        <NavItem icon="bar_chart" label="Dashboards" />
+<NavItem icon="bar_chart" label="Dashboards" />
         <NavItem icon="smart_toy" label="folk assistants" />
       </div>
 

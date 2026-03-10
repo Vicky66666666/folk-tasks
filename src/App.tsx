@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Sidebar } from './components/Sidebar'
 import { ContactPanel } from './components/ContactPanel'
 import { TasksPanel } from './components/TasksPanel'
-import { TasksPage } from './components/TasksPage'
 import { NotificationsPage } from './components/NotificationsPage'
 import { Icon } from './folk'
 
@@ -66,7 +65,7 @@ function TopBar() {
   )
 }
 
-type View = 'contact' | 'notifications' | 'tasks'
+type View = 'contact' | 'notifications'
 
 function App() {
   const [view, setView] = useState<View>('contact')
@@ -79,7 +78,6 @@ function App() {
       <Sidebar
         activePage={view}
         onNotificationsClick={() => setView(v => v === 'notifications' ? 'contact' : 'notifications')}
-        onTasksClick={() => setView(v => v === 'tasks' ? 'contact' : 'tasks')}
         onGroupClick={() => setView('contact')}
       />
       <div className="flex flex-col flex-1 overflow-hidden">
@@ -91,8 +89,6 @@ function App() {
               <TasksPanel />
             </div>
           </>
-        ) : view === 'tasks' ? (
-          <TasksPage />
         ) : (
           <NotificationsPage />
         )}
