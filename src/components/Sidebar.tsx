@@ -126,7 +126,7 @@ export function Sidebar({
       <div className="flex flex-col" style={{ gap: 2, padding: '8px 8px 4px' }}>
         <NavItem icon="search" label="Search" />
         <div onClick={onNotificationsClick} style={{ cursor: 'pointer' }}>
-          <NavItem icon="inbox" label="Inbox" count={6} active={activePage === 'notifications'} />
+          <NavItem icon="notifications" label="Notifications" count={6} active={activePage === 'notifications'} />
         </div>
         <NavItem icon="mail" label="Messages" />
 <NavItem icon="bar_chart" label="Dashboards" />

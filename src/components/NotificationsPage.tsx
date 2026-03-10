@@ -3,10 +3,8 @@ import { Icon } from '../folk'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type ItemType = 'mention' | 'assignment' | 'followup' | 'reminder' | 'group-invite'
-type Tab = 'inbox' | 'upcoming'
-type AgeGroup = 'today' | 'week' | 'older'
-type UpcomingGroup = 'this-week' | 'next-week' | 'later'
+type Tab = 'notifications' | 'upcoming'
+type Group = 'today' | 'week' | 'older'
 
 interface Actor {
   name: string
@@ -15,206 +13,142 @@ interface Actor {
   image?: string
 }
 
-interface InboxItem {
+interface Item {
   id: number
-  type: ItemType
+  tab: Tab
   actor?: Actor
-  isFolk?: boolean
+  icon?: 'bell' | 'mail'
   title: string
-  time: string       // display label: "11m", "Yesterday", "Mar 10"…
-  daysAgo: number    // 0 = today, 1–6 = this week, 7+ = older; negative = days from now (upcoming)
-  status: Tab
-}
-
-// ─── Actions per type ─────────────────────────────────────────────────────────
-
-const ACTIONS: Record<ItemType, Array<{ icon: string; label: string }>> = {
-  mention:        [{ icon: 'reply', label: 'Reply' },            { icon: 'check', label: 'Done' },    { icon: 'close', label: 'Dismiss' }],
-  assignment:     [{ icon: 'open_in_new', label: 'View' },       { icon: 'check', label: 'Done' },    { icon: 'close', label: 'Dismiss' }],
-  followup:       [{ icon: 'forward_to_inbox', label: 'Reply' }, { icon: 'snooze', label: 'Snooze' }, { icon: 'close', label: 'Dismiss' }],
-  reminder:       [{ icon: 'check', label: 'Done' },             { icon: 'snooze', label: 'Snooze' }, { icon: 'close', label: 'Dismiss' }],
-  'group-invite': [{ icon: 'check', label: 'Accept' },           { icon: 'close', label: 'Decline' }],
+  time: string
+  group: Group
+  unread?: boolean
 }
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
-const ITEMS: InboxItem[] = [
-  // ── Inbox ──────────────────────────────────────────────────────────────────
-  {
-    id: 1, type: 'mention', status: 'inbox', daysAgo: 0, time: '11m',
-    actor: { name: 'Leslie Alexander', initials: 'LA', color: '#7c6fcd', image: 'https://i.pravatar.cc/150?img=47' },
-    title: 'Leslie mentioned you on Jane Cooper',
-  },
-  {
-    id: 2, type: 'followup', status: 'inbox', daysAgo: 0, time: 'Now', isFolk: true,
-    title: 'Follow up with Tim Berners-Lee',
-  },
-  {
-    id: 3, type: 'reminder', status: 'inbox', daysAgo: 0, time: '10 PM',
-    title: 'Call John · Due today',
-  },
-  {
-    id: 4, type: 'assignment', status: 'inbox', daysAgo: 0, time: '2h',
-    actor: { name: 'Wilsey', initials: 'W', color: '#3b82f6' },
-    title: 'Wilsey assigned you to John doe',
-  },
-  {
-    id: 5, type: 'mention', status: 'inbox', daysAgo: 2, time: 'Yesterday',
-    actor: { name: 'Julie', initials: 'J', color: '#ef4444', image: 'https://i.pravatar.cc/150?img=5' },
-    title: 'Julie mentioned you on Sarah Connor',
-  },
-  {
-    id: 6, type: 'followup', status: 'inbox', daysAgo: 3, time: 'Feb 18', isFolk: true,
-    title: 'Follow up with Marc Andreessen',
-  },
-  {
-    id: 7, type: 'group-invite', status: 'inbox', daysAgo: 5, time: 'Feb 16',
-    actor: { name: 'Sarah', initials: 'S', color: '#10b981', image: 'https://i.pravatar.cc/150?img=9' },
-    title: 'Sarah invited you to 🇩🇪 Berlin Dinner',
-  },
-  {
-    id: 8, type: 'followup', status: 'inbox', daysAgo: 12, time: 'Feb 9', isFolk: true,
-    title: 'Follow up with Elon Musk',
-  },
-  {
-    id: 9, type: 'mention', status: 'inbox', daysAgo: 14, time: 'Feb 7',
-    actor: { name: 'Tom', initials: 'T', color: '#f59e0b' },
-    title: 'Tom mentioned you on Kevin Park',
-  },
+const ITEMS: Item[] = [
+  // ── Notifications ──
+  { id: 1,  tab: 'notifications', group: 'today', unread: true,  time: '11m',    actor: { name: 'Leslie Alexander', initials: 'LA', color: '#7c6fcd', image: 'https://i.pravatar.cc/150?img=47' }, title: 'Leslie Alexander mentioned you on Jane Cooper' },
+  { id: 2,  tab: 'notifications', group: 'week',  unread: true,  time: '2h',     actor: { name: 'Wilsey', initials: 'W', color: 'rgba(199,0,126,0.75)' }, title: 'Wilsey assigned you to John doe' },
+  { id: 3,  tab: 'notifications', group: 'week',  unread: false, time: 'Feb 18', actor: { name: 'Julie', initials: 'J', color: '#f76808', image: 'https://i.pravatar.cc/150?img=5' }, title: 'Julie mentioned you' },
+  { id: 4,  tab: 'notifications', group: 'week',  unread: true,  time: '2h',     actor: { name: 'Wilsey', initials: 'W', color: 'rgba(199,0,126,0.75)' }, title: 'Wilsey assigned you to John doe' },
+  { id: 5,  tab: 'notifications', group: 'week',  unread: true,  time: '2h',     actor: { name: 'Wilsey', initials: 'W', color: 'rgba(199,0,126,0.75)' }, title: 'Wilsey assigned you to John doe' },
+  { id: 6,  tab: 'notifications', group: 'week',  unread: true,  time: '2h',     actor: { name: 'Wilsey', initials: 'W', color: 'rgba(199,0,126,0.75)' }, title: 'Wilsey assigned you to John doe' },
+  { id: 7,  tab: 'notifications', group: 'older', time: 'Feb 18', actor: { name: 'Julie', initials: 'J', color: '#f76808', image: 'https://i.pravatar.cc/150?img=5' }, title: 'Julie mentioned you' },
+  { id: 8,  tab: 'notifications', group: 'older', time: 'Feb 18', actor: { name: 'Julie', initials: 'J', color: '#f76808', image: 'https://i.pravatar.cc/150?img=5' }, title: 'Julie mentioned you' },
+  { id: 9,  tab: 'notifications', group: 'older', time: 'Feb 18', actor: { name: 'Julie', initials: 'J', color: '#f76808', image: 'https://i.pravatar.cc/150?img=5' }, title: 'Julie mentioned you' },
+  { id: 10, tab: 'notifications', group: 'older', time: 'Feb 18', actor: { name: 'Julie', initials: 'J', color: '#f76808', image: 'https://i.pravatar.cc/150?img=5' }, title: 'Julie mentioned you' },
 
-  // ── Upcoming (reminders only) — daysAgo is negative: -N = N days from now ──
-  { id: 10, type: 'reminder', status: 'upcoming', daysAgo: -2,  time: 'Mar 7',  title: 'Call with Benjamin' },
-  { id: 11, type: 'reminder', status: 'upcoming', daysAgo: -3,  time: 'Mar 8',  title: 'Send NDA to Stripe' },
-  { id: 15, type: 'reminder', status: 'upcoming', daysAgo: -5,  time: 'Mar 10', title: 'Intro call with Y Combinator' },
-  { id: 16, type: 'reminder', status: 'upcoming', daysAgo: -8,  time: 'Mar 13', title: 'Follow up with Kevin Park' },
-  { id: 17, type: 'reminder', status: 'upcoming', daysAgo: -9,  time: 'Mar 14', title: 'Review partnership proposal with Acme' },
-  { id: 18, type: 'reminder', status: 'upcoming', daysAgo: -11, time: 'Mar 16', title: 'Prepare Q2 pipeline report' },
-  { id: 19, type: 'reminder', status: 'upcoming', daysAgo: -13, time: 'Mar 18', title: 'Sync with Berlin Dinner attendees' },
-  { id: 12, type: 'reminder', status: 'upcoming', daysAgo: -18, time: 'Mar 23', title: 'Quarterly review with Sarah' },
-  { id: 20, type: 'reminder', status: 'upcoming', daysAgo: -22, time: 'Mar 27', title: 'Call with Series B investors' },
-  { id: 21, type: 'reminder', status: 'upcoming', daysAgo: -35, time: 'Apr 9',  title: 'Update CRM with Hong Kong contacts' },
-  { id: 22, type: 'reminder', status: 'upcoming', daysAgo: -42, time: 'Apr 16', title: 'Follow up with Marc Andreessen' },
-
+  // ── Upcoming ──
+  { id: 20, tab: 'upcoming', group: 'today', unread: true, time: '1h', icon: 'bell', title: 'Call Priya about the new product' },
+  { id: 21, tab: 'upcoming', group: 'today', unread: true, time: '1h', icon: 'bell', title: 'Draft contract for Wayne Ind.' },
+  { id: 22, tab: 'upcoming', group: 'today', unread: true, time: '1h', icon: 'bell', title: 'Schedule demo with Globex Corp' },
+  { id: 23, tab: 'upcoming', group: 'today', unread: true, time: '1h', icon: 'bell', title: 'Research prospects in new region' },
+  { id: 24, tab: 'upcoming', group: 'today', unread: true, time: '1h', icon: 'bell', title: 'Send proposal to the Dunder Co.' },
+  { id: 25, tab: 'upcoming', group: 'week', time: '1h', icon: 'bell', title: 'Follow up with Schmidt group' },
+  { id: 26, tab: 'upcoming', group: 'week', time: '1h', icon: 'bell', title: 'Finalize Q3 sales report' },
+  { id: 27, tab: 'upcoming', group: 'week', time: '1h', icon: 'bell', title: 'Check in with Sarah from Widget Corp' },
+  { id: 28, tab: 'upcoming', group: 'week', time: '1h', icon: 'bell', title: 'Send thank you email to client' },
+  { id: 29, tab: 'upcoming', group: 'week', time: '1h', icon: 'bell', title: 'Review feedback from last call' },
+  { id: 30, tab: 'upcoming', group: 'week', time: '1h', icon: 'bell', title: 'Connect with new lead on LinkedIn' },
+  { id: 31, tab: 'upcoming', group: 'week', time: '1h', icon: 'bell', title: 'Reach out to potential partners' },
+  { id: 32, tab: 'upcoming', group: 'older', time: '1h', icon: 'bell', title: 'Send reminder about the event' },
+  { id: 33, tab: 'upcoming', group: 'older', time: '1h', icon: 'bell', title: 'Send invoice to Tyrell Corp' },
+  { id: 34, tab: 'upcoming', group: 'older', time: '1h', icon: 'bell', title: 'Update leads in the CRM system' },
+  { id: 35, tab: 'upcoming', group: 'older', time: '1h', icon: 'bell', title: 'Prepare presentation for next week' },
+  { id: 36, tab: 'upcoming', group: 'older', time: '1h', icon: 'bell', title: 'Confirm meeting with LexCorp' },
+  { id: 37, tab: 'upcoming', group: 'older', time: '1h', icon: 'mail', title: "You didn't reply to benjamin since 1 week" },
+  { id: 38, tab: 'upcoming', group: 'older', time: '1h', icon: 'mail', title: "You didn't reply to benjamin since 1 week" },
 ]
 
 const TABS: { key: Tab; label: string }[] = [
-  { key: 'inbox',    label: 'Inbox' },
-  { key: 'upcoming', label: 'Upcoming task' },
+  { key: 'notifications', label: 'Notifications' },
+  { key: 'upcoming',      label: 'Upcoming task' },
 ]
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function getAgeGroup(daysAgo: number): AgeGroup {
-  if (daysAgo === 0) return 'today'
-  if (daysAgo < 7)  return 'week'
-  return 'older'
-}
-
-function getUpcomingGroup(daysAgo: number): UpcomingGroup {
-  const n = -daysAgo // positive days from now
-  if (n <= 6)  return 'this-week'
-  if (n <= 13) return 'next-week'
-  return 'later'
-}
-
-const AGE_LABELS: Record<AgeGroup, string> = {
+const GROUP_LABELS: Record<Group, string> = {
   today: 'Today',
   week:  'This week',
   older: 'Older',
 }
 
-const UPCOMING_LABELS: Record<UpcomingGroup, string> = {
-  'this-week': 'This week',
-  'next-week': 'Next week',
-  'later':     'Later',
-}
-
-// ─── Shared color ─────────────────────────────────────────────────────────────
-
 const MUTED = 'rgba(0,0,0,0.61)'
+const DOT_COLOR = '#0090ff'
 
-// ─── Item icon ────────────────────────────────────────────────────────────────
+// ─── Avatar ───────────────────────────────────────────────────────────────────
 
-function ItemIcon({ item }: { item: InboxItem }) {
-  const dim = MUTED
-  if (item.actor && (item.type === 'mention' || item.type === 'assignment' || item.type === 'group-invite')) {
-    return (
-      <div style={{
-        width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
-        background: item.actor.color, overflow: 'hidden',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 8, fontWeight: 600, color: 'white',
-      }}>
-        {item.actor.image
-          ? <img src={item.actor.image} alt={item.actor.initials} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          : item.actor.initials}
-      </div>
-    )
-  }
-  if (item.type === 'followup') {
-    return <Icon name="mail_outline" size={16} style={{ color: dim, flexShrink: 0 }} />
-  }
-  return <Icon name="check_box" size={16} style={{ color: dim, flexShrink: 0 }} />
-}
-
-// ─── Hover actions ────────────────────────────────────────────────────────────
-
-function HoverActions({ type }: { type: ItemType }) {
+function Avatar({ actor }: { actor: Actor }) {
   return (
     <div style={{
-      position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-      background: 'white',
-      boxShadow: '0 1px 6px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.07)',
-      borderRadius: 6, display: 'flex', alignItems: 'center', padding: 2, zIndex: 2,
+      width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+      background: actor.color, overflow: 'hidden',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: 11, fontWeight: 600, color: 'white', letterSpacing: '0.5px',
     }}>
-      {ACTIONS[type].map(action => (
-        <button
-          key={action.label} title={action.label}
-          onClick={e => e.stopPropagation()}
-          style={{ width: 26, height: 26, border: 'none', background: 'none', cursor: 'pointer', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.06)')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-        >
-          <Icon name={action.icon} size={14} style={{ color: 'rgba(0,0,0,0.55)' }} />
-        </button>
-      ))}
+      {actor.image
+        ? <img src={actor.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        : actor.initials}
     </div>
   )
 }
 
-// ─── Item row ─────────────────────────────────────────────────────────────────
+// ─── Notification row ─────────────────────────────────────────────────────────
 
-function InboxItemRow({ item }: { item: InboxItem }) {
-  const [hovered, setHovered] = useState(false)
+function NotificationRow({ item }: { item: Item }) {
+  const isOlder = item.group === 'older'
+  const showDot = item.unread === true && !isOlder
   return (
-    <div
-      style={{
-        position: 'relative', display: 'flex', alignItems: 'center',
-        gap: 10, padding: '6px 16px', cursor: 'pointer',
-        background: hovered ? 'rgba(0,0,0,0.02)' : 'transparent',
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      <ItemIcon item={item} />
+    <div style={{
+      display: 'flex', alignItems: 'center',
+      gap: 12, paddingLeft: 24, paddingRight: 16, paddingTop: 4, paddingBottom: 4,
+      opacity: isOlder ? 0.5 : 1,
+    }}>
+      {item.actor && <Avatar actor={item.actor} />}
       <span style={{
-        flex: 1, minWidth: 0, fontSize: 13,
-        color: 'rgba(0,0,0,0.87)',
-        letterSpacing: '-0.04px', lineHeight: '18px',
-        fontWeight: 400,
+        flex: 1, minWidth: 0, fontSize: 13, fontWeight: 500,
+        color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.04px', lineHeight: '18px',
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>
         {item.title}
       </span>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
-        opacity: hovered ? 0 : 1, transition: 'opacity 0.1s',
+      <span style={{ fontSize: 12, color: MUTED, whiteSpace: 'nowrap', flexShrink: 0 }}>
+        {item.time}
+      </span>
+      {showDot
+        ? <div style={{ width: 6, height: 6, borderRadius: '50%', background: DOT_COLOR, flexShrink: 0 }} />
+        : <div style={{ width: 6, flexShrink: 0 }} />}
+    </div>
+  )
+}
+
+// ─── Upcoming row ─────────────────────────────────────────────────────────────
+
+function UpcomingRow({ item }: { item: Item }) {
+  const isToday = item.group === 'today'
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center',
+      gap: 12, paddingLeft: 24, paddingRight: 16, paddingTop: 8, paddingBottom: 8,
+      opacity: isToday ? 1 : 0.5,
+    }}>
+      <Icon
+        name={item.icon === 'mail' ? 'mail_outline' : 'notifications'}
+        size={16}
+        style={{ color: 'rgba(0,0,0,0.87)', flexShrink: 0 }}
+      />
+      <span style={{
+        flex: 1, minWidth: 0, fontSize: 13, fontWeight: 500,
+        color: 'rgba(0,0,0,0.87)', letterSpacing: '-0.04px', lineHeight: '18px',
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>
-        <span style={{ fontSize: 12, color: MUTED, whiteSpace: 'nowrap' }}>
-          {item.time}
-        </span>
-      </div>
-      {hovered && <HoverActions type={item.type} />}
+        {item.title}
+      </span>
+      <span style={{ fontSize: 12, color: MUTED, whiteSpace: 'nowrap', flexShrink: 0 }}>
+        {item.time}
+      </span>
+      {isToday
+        ? <div style={{ width: 6, height: 6, borderRadius: '50%', background: DOT_COLOR, flexShrink: 0 }} />
+        : <div style={{ width: 6, flexShrink: 0 }} />}
     </div>
   )
 }
@@ -223,8 +157,8 @@ function InboxItemRow({ item }: { item: InboxItem }) {
 
 function GroupLabel({ label }: { label: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', padding: '10px 16px 4px' }}>
-      <span style={{ fontSize: 12, fontWeight: 500, color: MUTED, letterSpacing: '-0.04px' }}>
+    <div style={{ paddingLeft: 24, paddingTop: 8, paddingBottom: 4 }}>
+      <span style={{ fontSize: 12, fontWeight: 500, color: MUTED, lineHeight: '16px' }}>
         {label}
       </span>
     </div>
@@ -234,25 +168,16 @@ function GroupLabel({ label }: { label: string }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function NotificationsPage() {
-  const [activeTab, setActiveTab] = useState<Tab>('inbox')
+  const [activeTab, setActiveTab] = useState<Tab>('notifications')
 
-  const tabItems = ITEMS.filter(i => {
-    if (i.status !== activeTab) return false
-    if (activeTab === 'upcoming') return i.type === 'reminder'
-    return true
-  })
+  const tabItems = ITEMS.filter(i => i.tab === activeTab)
 
-  // Group items by tab
-  const grouped: { key: string; label: string; items: InboxItem[] }[] =
-    activeTab === 'inbox'
-      ? (['today', 'week', 'older'] as AgeGroup[])
-          .map(key => ({ key, label: AGE_LABELS[key], items: tabItems.filter(i => getAgeGroup(i.daysAgo) === key) }))
-          .filter(g => g.items.length > 0)
-      : (['this-week', 'next-week', 'later'] as UpcomingGroup[])
-          .map(key => ({ key, label: UPCOMING_LABELS[key], items: tabItems.filter(i => getUpcomingGroup(i.daysAgo) === key) }))
-          .filter(g => g.items.length > 0)
+  const grouped = (['today', 'week', 'older'] as const)
+    .map(g => ({ key: g, label: GROUP_LABELS[g], items: tabItems.filter(i => i.group === g) }))
+    .filter(g => g.items.length > 0)
 
-  const inboxCount = ITEMS.filter(i => i.status === 'inbox').length
+  const notifCount = ITEMS.filter(i => i.tab === 'notifications' && i.unread).length
+  const upcomingCount = ITEMS.filter(i => i.tab === 'upcoming').length
 
   return (
     <div className="flex flex-1 overflow-hidden" style={{ background: 'white' }}>
@@ -261,9 +186,9 @@ export function NotificationsPage() {
 
         {/* Header */}
         <div className="flex items-center flex-shrink-0" style={{ paddingLeft: 16, paddingRight: 8, borderBottom: '1px solid rgba(0,0,0,0.08)', height: 48 }}>
-          <div className="flex items-center flex-1" style={{ height: '100%', gap: 0 }}>
+          <div className="flex items-center flex-1" style={{ height: '100%' }}>
             {TABS.map(tab => {
-              const count = tab.key === 'inbox' ? inboxCount : ITEMS.filter(i => i.status === tab.key && i.type === 'reminder').length
+              const count = tab.key === 'notifications' ? notifCount : upcomingCount
               return (
                 <button
                   key={tab.key}
@@ -311,10 +236,12 @@ export function NotificationsPage() {
         <div className="flex flex-col overflow-y-auto" style={{ paddingBottom: 12 }}>
           {grouped.map(group => (
             <div key={group.key}>
-              {group.label && <GroupLabel label={group.label} />}
-              {group.items.map(item => (
-                <InboxItemRow key={item.id} item={item} />
-              ))}
+              <GroupLabel label={group.label} />
+              {group.items.map(item =>
+                activeTab === 'notifications'
+                  ? <NotificationRow key={item.id} item={item} />
+                  : <UpcomingRow key={item.id} item={item} />
+              )}
             </div>
           ))}
         </div>
