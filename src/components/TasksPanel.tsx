@@ -905,7 +905,7 @@ export function TasksPanel() {
   const TABS: { key: Tab; label: string; count: number }[] = [
     { key: 'interactions', label: 'Interactions', count: 8 },
     { key: 'notes',        label: 'Notes',        count: 1 },
-    { key: 'tasks',        label: 'Tasks',        count: todoCount },
+    { key: 'tasks',        label: 'Todo',         count: todoCount },
   ]
 
   return (
@@ -939,7 +939,7 @@ export function TasksPanel() {
         {activeTab === 'tasks' && (
           <>
             <SectionHeader
-              label="Tasks"
+              label="Todo"
               count={todoCount}
               collapsed={collapsed.todo}
               onToggle={() => toggleCollapse('todo')}
@@ -950,7 +950,7 @@ export function TasksPanel() {
             ))}
 
             <SectionHeader
-              label="Completed"
+              label="Done"
               count={doneTasks.length}
               collapsed={collapsed.completed}
               onToggle={() => toggleCollapse('completed')}

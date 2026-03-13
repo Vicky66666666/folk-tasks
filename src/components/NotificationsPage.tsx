@@ -36,12 +36,12 @@ const TASKS: PageTask[] = [
   { id: 12, group: 'upnext',  title: 'Check in with lead after proposal',    date: 'Dec 21', avatar: 'photo',   avatarSrc: 'https://i.pravatar.cc/150?img=30' },
 ]
 
-const TASK_SECTIONS: { key: TaskGroup; label: string; showAdd?: boolean }[] = [
+const TASK_SECTIONS: { key: TaskGroup; label: string }[] = [
   { key: 'overdue',   label: 'Overdue' },
   { key: 'today',     label: 'Today' },
   { key: 'week',      label: 'This week' },
-  { key: 'upnext',    label: 'Up next', showAdd: true },
-  { key: 'completed', label: 'Completed' },
+  { key: 'upnext',    label: 'Upcoming' },
+  { key: 'completed', label: 'Done' },
 ]
 
 // ─── Task avatar ──────────────────────────────────────────────────────────────
@@ -58,12 +58,18 @@ function TaskAvatar({ task }: { task: PageTask }) {
 
 // ─── Task row ─────────────────────────────────────────────────────────────────
 
-function TaskRow({ task }: { task: PageTask }) {
+function TaskRow({ task, done, onToggle }: { task: PageTask; done: boolean; onToggle: (id: number) => void }) {
   const isOverdue = task.group === 'overdue'
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4, paddingLeft: 20, paddingRight: 24, paddingTop: 8, paddingBottom: 8 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, paddingLeft: 20, paddingRight: 24, paddingTop: 8, paddingBottom: 8, opacity: done ? 0.5 : 1 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-        <Icon name="radio_button_unchecked" size={16} style={{ color: 'rgba(0,0,0,0.2)', flexShrink: 0 }} />
+        <div onClick={() => onToggle(task.id)} style={{ flexShrink: 0, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+          <Icon
+            name={done ? 'check_circle' : 'radio_button_unchecked'}
+            size={16}
+            style={{ color: done ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.2)' }}
+          />
+        </div>
         <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 500, color: '#202020', letterSpacing: '-0.04px', lineHeight: '19px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {task.title}
         </span>
@@ -80,32 +86,24 @@ function TaskRow({ task }: { task: PageTask }) {
 
 // ─── Task section header ──────────────────────────────────────────────────────
 
-function TaskSectionHeader({ label, count, collapsed, onToggle, showAdd }: {
-  label: string; count: number; collapsed: boolean; onToggle: () => void; showAdd?: boolean
+function TaskSectionHeader({ label, count, collapsed, onToggle }: {
+  label: string; count: number; collapsed: boolean; onToggle: () => void
 }) {
-  const isCompleted = label === 'Completed'
+  const isDone = label === 'Done'
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 24, paddingRight: 18, paddingTop: isCompleted ? 10 : 12, paddingBottom: isCompleted ? 10 : 0 }}>
+    <div style={{ paddingLeft: 24, paddingRight: 18, paddingTop: isDone ? 10 : 12, paddingBottom: isDone ? 10 : 0 }}>
       <button onClick={onToggle} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
         <span style={{ fontSize: 13, fontWeight: 500, color: '#626262', letterSpacing: '-0.04px', lineHeight: '18px' }}>
           {label}
         </span>
-        {!isCompleted && (
+        {!isDone && (
           <span style={{ fontSize: 11, color: MUTED, lineHeight: 'normal' }}>{count}</span>
         )}
-        {isCompleted
+        {isDone
           ? <Icon name="chevron_right" size={16} style={{ color: MUTED }} />
           : <Icon name="expand_more" size={16} style={{ color: MUTED, transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
         }
       </button>
-      {showAdd && (
-        <button style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '50%', flexShrink: 0 }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-        >
-          <Icon name="add" size={16} style={{ color: MUTED }} />
-        </button>
-      )}
     </div>
   )
 }
@@ -116,17 +114,29 @@ function TasksTab() {
   const [collapsed, setCollapsed] = useState<Record<TaskGroup, boolean>>({
     overdue: false, today: false, week: false, upnext: false, completed: true,
   })
-  const toggle = (g: TaskGroup) => setCollapsed(prev => ({ ...prev, [g]: !prev[g] }))
+  const [doneIds, setDoneIds] = useState<Set<number>>(new Set())
+
+  const toggleCollapse = (g: TaskGroup) => setCollapsed(prev => ({ ...prev, [g]: !prev[g] }))
+  const toggleDone = (id: number) => setDoneIds(prev => {
+    const next = new Set(prev)
+    next.has(id) ? next.delete(id) : next.add(id)
+    return next
+  })
 
   return (
     <div className="flex flex-col overflow-y-auto" style={{ paddingBottom: 12 }}>
-      {TASK_SECTIONS.map(({ key, label, showAdd }) => {
-        const items = TASKS.filter(t => t.group === key)
+      {TASK_SECTIONS.map(({ key, label }) => {
+        const isDoneSection = key === 'completed'
+        const items = isDoneSection
+          ? TASKS.filter(t => doneIds.has(t.id))
+          : TASKS.filter(t => t.group === key && !doneIds.has(t.id))
         const isCollapsed = collapsed[key]
         return (
           <div key={key}>
-            <TaskSectionHeader label={label} count={items.length} collapsed={isCollapsed} onToggle={() => toggle(key)} showAdd={showAdd} />
-            {!isCollapsed && items.map(task => <TaskRow key={task.id} task={task} />)}
+            <TaskSectionHeader label={label} count={items.length} collapsed={isCollapsed} onToggle={() => toggleCollapse(key)} />
+            {!isCollapsed && items.map(task => (
+              <TaskRow key={task.id} task={task} done={doneIds.has(task.id)} onToggle={toggleDone} />
+            ))}
           </div>
         )
       })}
